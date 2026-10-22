@@ -1,0 +1,23 @@
+const { sql, ensureSchema, normalizePhone, ok, err, corsHeaders } = require('./_db');
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: corsHeaders(), body: '' };
+  if (event.httpMethod !== 'POST') return err(405, 'Method not allowed');
+  await ensureSchema();
+  const b = JSON.parse(event.body || '{}');
+  const phone = normalizePhone(b.phone);
+  const { surname, name, patronymic, dob, codeword, email } = b;
+  if (phone.length !== 10) return err(400, 'Некорректный телефон');
+  if (!surname || !name) return err(400, 'Укажите ФИО');
+  if (!dob) return err(400, 'Укажите дату рождения');
+  if (!codeword) return err(400, 'Укажите кодовое слово');
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err(400, 'Некорректный email');
+  const existPhone = await sql`SELECT phone FROM users WHERE phone = ${phone}`;
+  if (existPhone.length) return err(409, 'Этот номер уже зарегистрирован');
+  const existEmail = await sql`SELECT phone FROM users WHERE LOWER(email) = LOWER(${email})`;
+  if (existEmail.length) return err(409, 'Этот email уже используется');
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await sql`INSERT INTO users (phone, email, email_code, email_code_expires, surname, name, patronymic, dob, codeword, status) VALUES (${phone}, ${email}, ${code}, ${expires}, ${surname}, ${name}, ${patronymic || ''}, ${dob}, ${codeword}, 'pending_email')`;
+  console.log('EMAIL CODE for', email, '=', code);
+  return ok({ ok: true, message: 'Код отправлен на email', demoCode: code });
+};
