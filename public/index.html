@@ -110,7 +110,6 @@ body{background:var(--bg);min-height:100vh;display:flex;align-items:center;justi
 .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
 .pin-key{aspect-ratio:1.5/1;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .pin-key.empty{background:transparent;border:none;cursor:default}
-.pin-key.backspace svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
 .pin-cancel{background:none;border:none;color:var(--text-2);font-size:13px;cursor:pointer;padding:8px;width:100%;font-family:inherit}
 .dialog-overlay{display:none;position:fixed;inset:0;background:rgba(15,20,30,.55);backdrop-filter:blur(4px);z-index:110;align-items:center;justify-content:center;padding:16px}
 .dialog-overlay.open{display:flex}
@@ -349,7 +348,7 @@ body{background:var(--bg);min-height:100vh;display:flex;align-items:center;justi
 <div class="screen" id="screenTransfer">
   <button class="back-btn" id="transferBack">← Назад</button>
   <h1 class="screen-title">Перевод</h1>
-  <p class="screen-sub">Клиенту QwertyBank по номеру телефона. Каждый перевод проходит антифрод-проверку.</p>
+  <p class="screen-sub">Клиенту QwertyBank по номеру телефона.</p>
   <div class="field"><label class="field-label">Телефон получателя</label>
     <div class="phone-row"><span class="prefix">+7</span>
       <input type="tel" id="trPhone" maxlength="14" inputmode="numeric">
@@ -441,315 +440,113 @@ body{background:var(--bg);min-height:100vh;display:flex;align-items:center;justi
 </div>
 
 <script>
-/* ============================================================
-   QwertyBank — клиент. Вся логика через API.
-   ============================================================ */
 (function(){
 'use strict';
-
 const API = '/api';
 const TOKEN_KEY = 'qwb_token';
-
-let state = {
-  token: localStorage.getItem(TOKEN_KEY) || null,
-  phone: null,
-  user: null,
-  accounts: [],
-  notifications: [],
-  activeAccountId: null,
-  allTransactions: [],
-  pendingReg: null,
-  pinStage1: '',
-  pinCurrent: '',
-  pinMode: 'create',
-  settingsTheme: localStorage.getItem('qwb_theme') || 'light'
-};
+let state = { token: localStorage.getItem(TOKEN_KEY) || null, phone: null, user: null, accounts: [], notifications: [], activeAccountId: null, allTransactions: [], pendingReg: null, pinStage1: '', pinCurrent: '', pinMode: 'create' };
 
 function $(id){ return document.getElementById(id) }
-function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = $(name);
-  if (el) el.classList.add('active');
-}
-function showMsg(el, text, type){
-  if (!el) return;
-  el.textContent = text;
-  el.className = 'msg show ' + (type || 'info');
-}
+function showScreen(name){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const el = $(name); if (el) el.classList.add('active'); }
+function showMsg(el, text, type){ if (!el) return; el.textContent = text; el.className = 'msg show ' + (type || 'info'); }
 function hideMsg(el){ if (el){ el.textContent=''; el.className='msg'; } }
 function fmtMoney(n){ try { return Number(n||0).toLocaleString('ru-RU'); } catch(e){ return String(n||0); } }
-function fmtPhone(d){
-  if (!d) return '';
-  d = String(d).slice(0,10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return d.slice(0,3)+' '+d.slice(3);
-  if (d.length <= 8) return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6);
-  return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6,8)+' '+d.slice(8);
-}
-function normPhone(v){
-  let d = String(v||'').replace(/\D/g,'');
-  if (d.length === 11 && (d[0]==='7'||d[0]==='8')) d = d.slice(1);
-  return d.slice(0,10);
-}
-function dateShort(iso){
-  try {
-    const d = new Date(iso);
-    const m = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-    return d.getDate()+' '+m[d.getMonth()]+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-  } catch(e){ return iso }
-}
-function dateFull(iso){
-  try {
-    const d = new Date(iso);
-    const m = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-    return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear()+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-  } catch(e){ return iso }
-}
-function escapeHtml(s){
-  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
-}
+function fmtPhone(d){ if (!d) return ''; d = String(d).slice(0,10); if (d.length <= 3) return d; if (d.length <= 6) return d.slice(0,3)+' '+d.slice(3); if (d.length <= 8) return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6); return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6,8)+' '+d.slice(8); }
+function normPhone(v){ let d = String(v||'').replace(/\D/g,''); if (d.length === 11 && (d[0]==='7'||d[0]==='8')) d = d.slice(1); return d.slice(0,10); }
+function dateShort(iso){ try { const d = new Date(iso); const m = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']; return d.getDate()+' '+m[d.getMonth()]+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return iso } }
+function dateFull(iso){ try { const d = new Date(iso); const m = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']; return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear()+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return iso } }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
-/* ---------- API helper ---------- */
 async function api(path, opts){
-  opts = opts || {};
-  const headers = { 'Content-Type': 'application/json' };
+  opts = opts || {}; const headers = { 'Content-Type': 'application/json' };
   if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-  const res = await fetch(API + path, {
-    method: opts.method || 'GET',
-    headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  let data = null;
-  try { data = await res.json(); } catch(e){}
-  if (!res.ok){
-    const err = new Error((data && data.error) || ('HTTP '+res.status));
-    err.data = data;
-    throw err;
-  }
+  const res = await fetch(API + path, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  let data = null; try { data = await res.json(); } catch(e){}
+  if (!res.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
   return data;
 }
 
-/* ---------- Тема ---------- */
-function applyTheme(){
-  if (state.settingsTheme === 'dark') document.body.classList.add('theme-dark');
-  else document.body.classList.remove('theme-dark');
-}
-
-/* ---------- Регистрация: email ---------- */
 async function sendEmailCode(){
   try {
-    hideMsg($('regMsg'));
-    const phone = normPhone(state.phone);
-    const email = $('emInput').value.trim();
+    hideMsg($('regMsg')); const phone = normPhone(state.phone); const email = $('emInput').value.trim();
     if (!email) return showMsg($('regMsg'), 'Укажите email', 'error');
-
-    const body = {
-      phone,
-      surname: $('surInput').value.trim(),
-      name: $('nmInput').value.trim(),
-      patronymic: $('patInput').value.trim(),
-      dob: $('dobInput').value,
-      codeword: $('cwInput').value.trim(),
-      email
-    };
+    const body = { phone, surname: $('surInput').value.trim(), name: $('nmInput').value.trim(), patronymic: $('patInput').value.trim(), dob: $('dobInput').value, codeword: $('cwInput').value.trim(), email };
     if (!body.surname || !body.name) return showMsg($('regMsg'), 'Укажите ФИО', 'error');
     if (!body.dob) return showMsg($('regMsg'), 'Укажите дату рождения', 'error');
     if (!body.codeword) return showMsg($('regMsg'), 'Укажите кодовое слово', 'error');
-
     const r = await api('/register', { method:'POST', body });
     state.pendingReg = { phone, email };
-    $('emCodeField').style.display = '';
-    $('emVerifyBtn').style.display = '';
-    $('emSendBtn').style.display = 'none';
+    $('emCodeField').style.display = ''; $('emVerifyBtn').style.display = ''; $('emSendBtn').style.display = 'none';
     showMsg($('regMsg'), 'Код отправлен на email. Демо-код: ' + (r.demoCode || '—'), 'info');
-  } catch(e){
-    showMsg($('regMsg'), e.message, 'error');
-  }
+  } catch(e){ showMsg($('regMsg'), e.message, 'error'); }
 }
 
 async function verifyEmail(){
   try {
-    hideMsg($('regMsg'));
-    const code = $('emCodeInput').value.trim();
-    const phone = state.pendingReg.phone;
+    hideMsg($('regMsg')); const code = $('emCodeInput').value.trim(); const phone = state.pendingReg.phone;
     await api('/verify-email', { method:'POST', body:{ phone, code } });
-
-    // Теперь создаём PIN
-    state.pinMode = 'create';
-    state.pinStage1 = '';
-    state.pinCurrent = '';
-    renderPinDots($('pinCreateDots'), 0);
-    showScreen('pinCreate');
-  } catch(e){
-    showMsg($('regMsg'), e.message, 'error');
-  }
+    state.pinMode = 'create'; state.pinStage1 = ''; state.pinCurrent = '';
+    renderPinDots($('pinCreateDots'), 0); showScreen('pinCreate');
+  } catch(e){ showMsg($('regMsg'), e.message, 'error'); }
 }
 
-/* ---------- PIN ---------- */
-function renderPinDots(el, n, err){
-  if (!el) return;
-  const dots = el.querySelectorAll('.pin-dot');
-  dots.forEach((d,i) => {
-    d.classList.toggle('filled', i < n);
-    if (err) d.classList.add('error'); else d.classList.remove('error');
-  });
-}
-function bindPinPad(pad, mode){
-  pad.querySelectorAll('.pin-key').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const d = btn.getAttribute('data-d');
-      const a = btn.getAttribute('data-a');
-      if (d) pinInput(mode, d);
-      else if (a === 'back') pinBack(mode);
-    });
-  });
-}
-function pinInput(mode, d){
-  if (state.pinCurrent.length >= 4) return;
-  state.pinCurrent += d;
-  renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length);
-  if (state.pinCurrent.length === 4) setTimeout(() => pinComplete(mode), 130);
-}
-function pinBack(mode){
-  if (!state.pinCurrent.length) return;
-  state.pinCurrent = state.pinCurrent.slice(0,-1);
-  renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length);
-}
+function renderPinDots(el, n, err){ if (!el) return; el.querySelectorAll('.pin-dot').forEach((d,i) => { d.classList.toggle('filled', i < n); if (err) d.classList.add('error'); else d.classList.remove('error'); }); }
+function bindPinPad(pad, mode){ pad.querySelectorAll('.pin-key').forEach(btn => { btn.addEventListener('click', () => { const d = btn.getAttribute('data-d'); const a = btn.getAttribute('data-a'); if (d) pinInput(mode, d); else if (a === 'back') pinBack(mode); }); }); }
+function pinInput(mode, d){ if (state.pinCurrent.length >= 4) return; state.pinCurrent += d; renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length); if (state.pinCurrent.length === 4) setTimeout(() => pinComplete(mode), 130); }
+function pinBack(mode){ if (!state.pinCurrent.length) return; state.pinCurrent = state.pinCurrent.slice(0,-1); renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length); }
+
 async function pinComplete(mode){
   if (mode === 'create'){
-    if (state.pinMode === 'create' && !state.pinStage1){
-      state.pinStage1 = state.pinCurrent;
-      state.pinCurrent = '';
-      renderPinDots($('pinCreateDots'), 0);
-      // Сразу подтверждение — переиспользуем тот же экран, но просим повторить
-      showMsg($('pinCreateMsg'), 'Повторите PIN', 'info');
-      state.pinMode = 'confirm';
-      return;
-    }
+    if (state.pinMode === 'create' && !state.pinStage1){ state.pinStage1 = state.pinCurrent; state.pinCurrent = ''; renderPinDots($('pinCreateDots'), 0); showMsg($('pinCreateMsg'), 'Повторите PIN', 'info'); state.pinMode = 'confirm'; return; }
     if (state.pinMode === 'confirm'){
-      if (state.pinCurrent !== state.pinStage1){
-        showMsg($('pinCreateMsg'), 'PIN не совпадает', 'error');
-        state.pinStage1 = '';
-        state.pinCurrent = '';
-        state.pinMode = 'create';
-        renderPinDots($('pinCreateDots'), 0);
-        return;
-      }
+      if (state.pinCurrent !== state.pinStage1){ showMsg($('pinCreateMsg'), 'PIN не совпадает', 'error'); state.pinStage1 = ''; state.pinCurrent = ''; state.pinMode = 'create'; renderPinDots($('pinCreateDots'), 0); return; }
       try {
-        const phone = state.pendingReg.phone;
-        const r = await api('/set-pin', { method:'POST', body:{ phone, pin: state.pinStage1 } });
-        state.token = r.token;
-        localStorage.setItem(TOKEN_KEY, r.token);
-        state.pendingReg = null;
-        state.pinStage1 = '';
-        state.pinCurrent = '';
-        await loadMe();
-      } catch(e){
-        showMsg($('pinCreateMsg'), e.message, 'error');
-      }
+        const phone = state.pendingReg.phone; const r = await api('/set-pin', { method:'POST', body:{ phone, pin: state.pinStage1 } });
+        state.token = r.token; localStorage.setItem(TOKEN_KEY, r.token); state.pendingReg = null; state.pinStage1 = ''; state.pinCurrent = ''; await loadMe();
+      } catch(e){ showMsg($('pinCreateMsg'), e.message, 'error'); }
     }
     return;
   }
   if (mode === 'login'){
     try {
       const r = await api('/login', { method:'POST', body:{ phone: state.phone, pin: state.pinCurrent } });
-      state.token = r.token;
-      localStorage.setItem(TOKEN_KEY, r.token);
-      state.pinCurrent = '';
-      await loadMe();
-    } catch(e){
-      renderPinDots($('pinLoginDots'), 4, true);
-      showMsg($('pinLoginMsg'), e.message, 'error');
-      setTimeout(() => {
-        state.pinCurrent = '';
-        renderPinDots($('pinLoginDots'), 0);
-      }, 800);
-    }
+      state.token = r.token; localStorage.setItem(TOKEN_KEY, r.token); state.pinCurrent = ''; await loadMe();
+    } catch(e){ renderPinDots($('pinLoginDots'), 4, true); showMsg($('pinLoginMsg'), e.message, 'error'); setTimeout(() => { state.pinCurrent = ''; renderPinDots($('pinLoginDots'), 0); }, 800); }
   }
 }
 
-/* ---------- Загрузка пользователя ---------- */
 async function loadMe(){
-  const data = await api('/me');
-  state.user = data.user;
-  state.accounts = data.accounts;
-  state.notifications = data.notifications;
+  const data = await api('/me'); state.user = data.user; state.accounts = data.accounts; state.notifications = data.notifications;
   state.activeAccountId = state.activeAccountId || (state.accounts[0] && state.accounts[0].id);
-  const txs = await api('/transactions');
-  state.allTransactions = txs.transactions || [];
-  renderLK();
-  showScreen('lk');
+  const txs = await api('/transactions'); state.allTransactions = txs.transactions || [];
+  renderLK(); showScreen('lk');
 }
 
-function currentAccount(){
-  return state.accounts.find(a => String(a.id) === String(state.activeAccountId)) || state.accounts[0];
-}
+function currentAccount(){ return state.accounts.find(a => String(a.id) === String(state.activeAccountId)) || state.accounts[0]; }
 
-/* ---------- ЛК ---------- */
 function renderLK(){
-  const u = state.user;
-  $('lkAvatar').textContent = ((u.surname||'?')[0] + (u.name||'')[0]).toUpperCase();
-  $('lkName').textContent = [u.surname, u.name, u.patronymic].filter(Boolean).join(' ');
-  $('lkPhone').textContent = '+7 ' + fmtPhone(u.phone);
-
+  const u = state.user; $('lkAvatar').textContent = ((u.surname||'?')[0] + (u.name||'')[0]).toUpperCase(); $('lkName').textContent = [u.surname, u.name, u.patronymic].filter(Boolean).join(' '); $('lkPhone').textContent = '+7 ' + fmtPhone(u.phone);
   const vb = $('verificationBanner');
-  if (u.status === 'blocked'){
-    vb.innerHTML = '<div class="verification-banner"><strong>Счёт заблокирован</strong>' +
-      escapeHtml(u.blockedReason || 'Обратитесь в поддержку для разблокировки.') + '</div>';
-  } else if (u.status === 'close_pending'){
-    vb.innerHTML = '<div class="verification-banner"><strong>Заявка на закрытие счёта</strong>Ожидайте решения поддержки.</div>';
-  } else if (u.status === 'closed'){
-    vb.innerHTML = '<div class="verification-banner"><strong>Счёт закрыт</strong>Пересоздайте счёт в Настройках.</div>';
-  } else {
-    vb.innerHTML = '';
-  }
+  if (u.status === 'blocked') vb.innerHTML = '<div class="verification-banner"><strong>Счёт заблокирован</strong>' + escapeHtml(u.blockedReason || 'Обратитесь в поддержку для разблокировки.') + '</div>';
+  else if (u.status === 'close_pending') vb.innerHTML = '<div class="verification-banner"><strong>Заявка на закрытие счёта</strong>Ожидайте решения поддержки.</div>';
+  else if (u.status === 'closed') vb.innerHTML = '<div class="verification-banner"><strong>Счёт закрыт</strong>Пересоздайте счёт в Настройках.</div>';
+  else vb.innerHTML = '';
 
-  const acc = currentAccount();
-  if (acc){
-    $('balanceValue').innerHTML = fmtMoney(acc.balance) + ' <span>₽</span>';
-  } else {
-    $('balanceValue').innerHTML = '0 <span>₽</span>';
-  }
+  const acc = currentAccount(); if (acc) $('balanceValue').innerHTML = fmtMoney(acc.balance) + ' <span>₽</span>'; else $('balanceValue').innerHTML = '0 <span>₽</span>';
 
-  // Статистика
-  let totalIn = 0, totalOut = 0;
-  state.allTransactions.forEach(t => {
-    if (t.to_phone === u.phone && t.status === 'completed') totalIn += Number(t.amount);
-    if (t.from_phone === u.phone && t.status === 'completed') totalOut += Number(t.amount);
-  });
-  $('statInValue').textContent = fmtMoney(totalIn) + ' ₽';
-  $('statOutValue').textContent = fmtMoney(totalOut) + ' ₽';
+  let totalIn = 0, totalOut = 0; state.allTransactions.forEach(t => { if (t.to_phone === u.phone && t.status === 'completed') totalIn += Number(t.amount); if (t.from_phone === u.phone && t.status === 'completed') totalOut += Number(t.amount); });
+  $('statInValue').textContent = fmtMoney(totalIn) + ' ₽'; $('statOutValue').textContent = fmtMoney(totalOut) + ' ₽';
 
-  // Переключатель счетов
   const sw = $('accountSwitcher');
-  sw.innerHTML = state.accounts.map(a => {
-    const isActive = String(a.id) === String(state.activeAccountId);
-    return '<button class="account-chip ' + (isActive?'active':'') + '" data-accid="'+a.id+'">' +
-      (a.type === 'salary' ? 'Зарплатный' : 'Основной') +
-      '<span class="sub">' + fmtMoney(a.balance) + ' ₽</span></button>';
-  }).join('');
-  sw.querySelectorAll('.account-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.activeAccountId = btn.getAttribute('data-accid');
-      renderLK();
-    });
-  });
+  sw.innerHTML = state.accounts.map(a => { const isActive = String(a.id) === String(state.activeAccountId); return '<button class="account-chip ' + (isActive?'active':'') + '" data-accid="'+a.id+'">' + (a.type === 'salary' ? 'Зарплатный' : 'Основной') + '<span class="sub">' + fmtMoney(a.balance) + ' ₽</span></button>'; }).join('');
+  sw.querySelectorAll('.account-chip').forEach(btn => { btn.addEventListener('click', () => { state.activeAccountId = btn.getAttribute('data-accid'); renderLK(); }); });
 
-  // Бейдж
-  const unread = state.notifications.filter(n => !n.read).length;
-  const badge = $('notifBadge');
-  if (unread > 0){ badge.style.display = ''; badge.textContent = unread > 9 ? '9+' : String(unread); }
-  else badge.style.display = 'none';
+  const unread = state.notifications.filter(n => !n.read).length; const badge = $('notifBadge'); if (unread > 0){ badge.style.display = ''; badge.textContent = unread > 9 ? '9+' : String(unread); } else badge.style.display = 'none';
 
-  // Блокировка кнопок
   const blocked = ['blocked','closed','close_pending'].includes(u.status);
-  $('transferBtn').disabled = blocked;
-  $('topupBtn').disabled = blocked;
-
-  // Пересоздание счёта в настройках
+  $('transferBtn').disabled = blocked; $('topupBtn').disabled = blocked;
   $('sRecreateBtn').style.display = u.status === 'closed' ? '' : 'none';
 
-  // История
   renderTxList($('historyList'), state.allTransactions.slice(0, 20));
 }
 
@@ -757,560 +554,172 @@ function renderTxList(container, txs){
   if (!container) return;
   if (!txs.length){ container.innerHTML = '<div class="empty">Пока нет операций</div>'; return; }
   container.innerHTML = txs.map(t => {
-    const isIn = t.to_phone === state.user.phone;
-    const icon = isIn ? '↙' : '↗';
-    let cls = isIn ? 'plus' : '';
+    const isIn = t.to_phone === state.user.phone; const icon = isIn ? '↙' : '↗'; let cls = isIn ? 'plus' : '';
     if (t.status === 'frozen' || t.status === 'pending'){ cls = 'frozen'; }
     const amount = (isIn ? '+' : '−') + fmtMoney(t.amount) + ' ₽';
-    return '<div class="tx" data-txid="'+t.id+'">' +
-      '<div class="tx-left">' +
-        '<div class="tx-icon">'+icon+'</div>' +
-        '<div style="min-width:0">' +
-          '<div class="tx-name">'+escapeHtml(t.comment || (isIn?'Входящий':'Исходящий'))+'</div>' +
-          '<div class="tx-meta">'+dateShort(t.created_at)+' · '+escapeHtml(t.tx_number)+'</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="tx-amount '+cls+'">'+amount+'</div>' +
-    '</div>';
+    return '<div class="tx" data-txid="'+t.id+'"><div class="tx-left"><div class="tx-icon">'+icon+'</div><div style="min-width:0"><div class="tx-name">'+escapeHtml(t.comment || (isIn?'Входящий':'Исходящий'))+'</div><div class="tx-meta">'+dateShort(t.created_at)+' · '+escapeHtml(t.tx_number)+'</div></div></div><div class="tx-amount '+cls+'">'+amount+'</div></div>';
   }).join('');
-  container.querySelectorAll('.tx').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.getAttribute('data-txid');
-      openTxDetail(id);
-    });
-  });
+  container.querySelectorAll('.tx').forEach(el => { el.addEventListener('click', () => { openTxDetail(el.getAttribute('data-txid')); }); });
 }
 
-/* ---------- Детали операции ---------- */
 function openTxDetail(txId){
-  const t = state.allTransactions.find(x => String(x.id) === String(txId));
-  if (!t) return;
+  const t = state.allTransactions.find(x => String(x.id) === String(txId)); if (!t) return;
   const isIn = t.to_phone === state.user.phone;
-  const rows = [
-    ['Номер операции', t.tx_number],
-    ['Статус', statusRu(t.status)],
-    ['Сумма', (isIn?'+':'−') + fmtMoney(t.amount) + ' ₽'],
-    ['Отправитель', t.from_phone ? '+7 ' + fmtPhone(t.from_phone) : '—'],
-    ['Получатель', t.to_phone ? '+7 ' + fmtPhone(t.to_phone) : '—'],
-    ['Комментарий', t.comment || '—'],
-    ['Дата', dateFull(t.created_at)]
-  ];
-  $('txBody').innerHTML = rows.map(([l,v]) =>
-    '<div class="tx-detail-row"><div class="lbl">'+escapeHtml(l)+'</div><div class="val">'+escapeHtml(v)+'</div></div>'
-  ).join('');
+  const rows = [ ['Номер операции', t.tx_number], ['Статус', statusRu(t.status)], ['Сумма', (isIn?'+':'−') + fmtMoney(t.amount) + ' ₽'], ['Отправитель', t.from_phone ? '+7 ' + fmtPhone(t.from_phone) : '—'], ['Получатель', t.to_phone ? '+7 ' + fmtPhone(t.to_phone) : '—'], ['Комментарий', t.comment || '—'], ['Дата', dateFull(t.created_at)] ];
+  $('txBody').innerHTML = rows.map(([l,v]) => '<div class="tx-detail-row"><div class="lbl">'+escapeHtml(l)+'</div><div class="val">'+escapeHtml(v)+'</div></div>').join('');
   showScreen('txDetail');
 }
 
-function statusRu(s){
-  return ({completed:'Выполнена', pending:'На проверке', frozen:'Приостановлена', returned:'Возвращена', blocked:'Заблокирована', rejected:'Отклонена'})[s] || s;
-}
+function statusRu(s){ return ({completed:'Выполнена', pending:'На проверке', frozen:'Приостановлена', returned:'Возвращена', blocked:'Заблокирована', rejected:'Отклонена'})[s] || s; }
 
-/* ---------- Уведомления ---------- */
-async function openNotifications(){
-  const data = await api('/notifications');
-  state.notifications = data.notifications;
-  renderNotifs();
-  showScreen('notifs');
-}
+async function openNotifications(){ const data = await api('/notifications'); state.notifications = data.notifications; renderNotifs(); showScreen('notifs'); }
 function renderNotifs(){
-  const box = $('notifList');
-  if (!state.notifications.length){ box.innerHTML = '<div class="empty">Нет уведомлений</div>'; return; }
-  box.innerHTML = state.notifications.map(n => {
-    let icon = '📩';
-    if (n.type === 'blocked') icon = '🚫';
-    if (n.type === 'transfer_in') icon = '↙';
-    if (n.type === 'transfer_out') icon = '↗';
-    if (n.type === 'tx_pending') icon = '⏸';
-    if (n.type === 'chat') icon = '💬';
-    if (n.type === 'close') icon = '🔒';
-    return '<button class="notif '+(n.read?'':'unread')+'" data-nid="'+n.id+'">' +
-      '<div class="n-icon">'+icon+'</div>' +
-      '<div class="n-body">' +
-        '<div class="n-title">'+escapeHtml(n.title)+'</div>' +
-        '<div class="n-text">'+escapeHtml(n.text)+'</div>' +
-        '<div class="n-date">'+dateShort(n.created_at)+'</div>' +
-      '</div>' +
-      (n.read?'':'<div class="n-dot"></div>') +
-    '</button>';
-  }).join('');
-  box.querySelectorAll('.notif').forEach(el => {
-    el.addEventListener('click', async () => {
-      const nid = el.getAttribute('data-nid');
-      await api('/notifications', { method:'POST', body:{ id: nid } });
-      const n = state.notifications.find(x => String(x.id) === String(nid));
-      if (n) n.read = true;
-      renderNotifs();
-      renderLK();
-    });
-  });
+  const box = $('notifList'); if (!state.notifications.length){ box.innerHTML = '<div class="empty">Нет уведомлений</div>'; return; }
+  box.innerHTML = state.notifications.map(n => { let icon = '📩'; if (n.type === 'blocked') icon = '🚫'; if (n.type === 'transfer_in') icon = '↙'; if (n.type === 'transfer_out') icon = '↗'; if (n.type === 'tx_pending') icon = '⏸'; if (n.type === 'chat') icon = '💬'; if (n.type === 'close') icon = '🔒';
+    return '<button class="notif '+(n.read?'':'unread')+'" data-nid="'+n.id+'"><div class="n-icon">'+icon+'</div><div class="n-body"><div class="n-title">'+escapeHtml(n.title)+'</div><div class="n-text">'+escapeHtml(n.text)+'</div><div class="n-date">'+dateShort(n.created_at)+'</div></div>'+(n.read?'':'<div class="n-dot"></div>')+'</button>'; }).join('');
+  box.querySelectorAll('.notif').forEach(el => { el.addEventListener('click', async () => { const nid = el.getAttribute('data-nid'); await api('/notifications', { method:'POST', body:{ id: nid } }); const n = state.notifications.find(x => String(x.id) === String(nid)); if (n) n.read = true; renderNotifs(); renderLK(); }); });
 }
 
-/* ---------- Чат ---------- */
-async function openChat(){
-  const data = await api('/support');
-  renderChat(data.messages || []);
-  showScreen('chat');
-}
-function renderChat(msgs){
-  const box = $('chatMessages');
-  if (!msgs.length){ box.innerHTML = '<div class="chat-msg system">Напишите сообщение — поддержка ответит.</div>'; return; }
-  box.innerHTML = msgs.map(m => {
-    const cls = m.from_who === 'user' ? 'user' : 'support';
-    return '<div class="chat-msg '+cls+'">'+escapeHtml(m.text)+
-      '<span class="cm-time">'+dateShort(m.created_at)+'</span></div>';
-  }).join('');
-  box.scrollTop = box.scrollHeight;
-}
-async function sendChat(){
-  const text = $('chatInput').value.trim();
-  if (!text) return;
-  try {
-    await api('/support', { method:'POST', body:{ text } });
-    $('chatInput').value = '';
-    await openChat();
-  } catch(e){ alert(e.message); }
-}
+async function openChat(){ const data = await api('/support'); renderChat(data.messages || []); showScreen('chat'); }
+function renderChat(msgs){ const box = $('chatMessages'); if (!msgs.length){ box.innerHTML = '<div class="chat-msg system">Напишите сообщение — поддержка ответит.</div>'; return; } box.innerHTML = msgs.map(m => { const cls = m.from_who === 'user' ? 'user' : 'support'; return '<div class="chat-msg '+cls+'">'+escapeHtml(m.text)+'<span class="cm-time">'+dateShort(m.created_at)+'</span></div>'; }).join(''); box.scrollTop = box.scrollHeight; }
+async function sendChat(){ const text = $('chatInput').value.trim(); if (!text) return; try { await api('/support', { method:'POST', body:{ text } }); $('chatInput').value = ''; await openChat(); } catch(e){ alert(e.message); } }
 
-/* ---------- Перевод ---------- */
 async function doTransfer(){
   try {
-    hideMsg($('trMsg'));
-    const toPhone = normPhone($('trPhone').value);
-    const amount = Number(String($('trAmount').value).replace(/\D/g,''));
-    const comment = $('trComment').value.trim();
-
-    if (toPhone.length !== 10) return showMsg($('trMsg'), 'Введите 10 цифр телефона', 'error');
-    if (!amount || amount <= 0) return showMsg($('trMsg'), 'Введите сумму', 'error');
-
-    const r = await api('/transfer', {
-      method:'POST',
-      body: { toPhone, amount, comment, fromAccountId: state.activeAccountId }
-    });
-
+    hideMsg($('trMsg')); const toPhone = normPhone($('trPhone').value); const amount = Number(String($('trAmount').value).replace(/\D/g,''));
+    if (toPhone.length !== 10) return showMsg($('trMsg'), 'Введите 10 цифр телефона', 'error'); if (!amount || amount <= 0) return showMsg($('trMsg'), 'Введите сумму', 'error');
+    const r = await api('/transfer', { method:'POST', body: { toPhone, amount, comment: $('trComment').value.trim(), fromAccountId: state.activeAccountId } });
     if (r.blocked){
-      // Блокировка — показать причину
-      $('sucTitle').textContent = 'Перевод заблокирован';
-      $('sucSub').textContent = 'Антифрод-проверка отклонила операцию';
-      $('sucReceipt').innerHTML = '<div class="req-card">' +
-        '<div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div>' +
-        '<div class="req-row"><span class="req-label">Причины</span><span class="req-val">'+escapeHtml(r.reasons.join('; '))+'</span></div>' +
-      '</div>';
-      showScreen('success');
-      // перезагрузим состояние
-      await loadMe();
-      return;
+      $('sucTitle').textContent = 'Перевод заблокирован'; $('sucSub').textContent = 'Антифрод-проверка отклонила операцию';
+      $('sucReceipt').innerHTML = '<div class="req-card"><div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div><div class="req-row"><span class="req-label">Причины</span><span class="req-val">'+escapeHtml(r.reasons.join('; '))+'</span></div></div>';
+      showScreen('success'); await loadMe(); return;
     }
-
-    $('sucTitle').textContent = 'Перевод выполнен';
-    $('sucSub').textContent = 'Деньги отправлены получателю';
-    $('sucReceipt').innerHTML = '<div class="req-card">' +
-      '<div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div>' +
-      '<div class="req-row"><span class="req-label">Сумма</span><span class="req-val">'+fmtMoney(amount)+' ₽</span></div>' +
-      '<div class="req-row"><span class="req-label">Получатель</span><span class="req-val">+7 '+fmtPhone(toPhone)+'</span></div>' +
-    '</div>';
-    showScreen('success');
-    await loadMe();
-  } catch(e){
-    showMsg($('trMsg'), e.message, 'error');
-  }
+    $('sucTitle').textContent = 'Перевод выполнен'; $('sucSub').textContent = 'Деньги отправлены получателю';
+    $('sucReceipt').innerHTML = '<div class="req-card"><div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div><div class="req-row"><span class="req-label">Сумма</span><span class="req-val">'+fmtMoney(amount)+' ₽</span></div></div>';
+    showScreen('success'); await loadMe();
+  } catch(e){ showMsg($('trMsg'), e.message, 'error'); }
 }
 
-/* ---------- Между счетами ---------- */
 async function openBetween(){
   if (state.accounts.length < 2){ alert('Создайте зарплатный счёт для переводов между счетами'); return; }
   const from = $('btFrom'), to = $('btTo');
   from.innerHTML = state.accounts.map(a => '<option value="'+a.id+'">'+(a.type==='salary'?'Зарплатный':'Основной')+' — '+fmtMoney(a.balance)+' ₽</option>').join('');
   to.innerHTML = state.accounts.map(a => '<option value="'+a.id+'">'+(a.type==='salary'?'Зарплатный':'Основной')+'</option>').join('');
-  from.value = state.accounts[0].id;
-  to.value = state.accounts[1].id;
-  $('btAmount').value = '';
-  hideMsg($('btMsg'));
-  showScreen('between');
+  from.value = state.accounts[0].id; to.value = state.accounts[1].id; $('btAmount').value = ''; hideMsg($('btMsg')); showScreen('between');
 }
 async function doBetween(){
   try {
-    hideMsg($('btMsg'));
-    const amount = Number(String($('btAmount').value).replace(/\D/g,''));
+    hideMsg($('btMsg')); const amount = Number(String($('btAmount').value).replace(/\D/g,''));
     if (!amount || amount <= 0) return showMsg($('btMsg'), 'Введите сумму', 'error');
-    await api('/accounts', { method:'POST', body:{
-      action:'transfer-between',
-      fromId: $('btFrom').value,
-      toId: $('btTo').value,
-      amount
-    }});
-    await loadMe();
-    $('sucTitle').textContent = 'Перевод между счетами';
-    $('sucSub').textContent = 'Без комиссии';
-    $('sucReceipt').innerHTML = '';
-    showScreen('success');
-  } catch(e){
-    showMsg($('btMsg'), e.message, 'error');
-  }
+    await api('/accounts', { method:'POST', body:{ action:'transfer-between', fromId: $('btFrom').value, toId: $('btTo').value, amount } });
+    await loadMe(); showScreen('lk');
+  } catch(e){ showMsg($('btMsg'), e.message, 'error'); }
 }
 
-/* ---------- Зарплатный счёт ---------- */
 async function createSalary(){
-  try {
-    await api('/accounts', { method:'POST', body:{ action:'create-salary' } });
-    await loadMe();
-    alert('Зарплатный счёт открыт. Реквизиты в Настройках → Реквизиты.');
-  } catch(e){
-    alert(e.message);
-  }
+  try { await api('/accounts', { method:'POST', body:{ action:'create-salary' } }); await loadMe(); alert('Зарплатный счёт открыт. Реквизиты в Настройках → Реквизиты.'); }
+  catch(e){ alert(e.message); }
 }
 
-/* ---------- Реквизиты ---------- */
 function openReq(){
-  const acc = currentAccount();
-  if (!acc) return;
+  const acc = currentAccount(); if (!acc) return;
   $('reqTitle').textContent = acc.type === 'salary' ? 'Зарплатный счёт' : 'Основной счёт';
-  $('reqBody').innerHTML = '<div class="req-card">' +
-    '<div class="req-row"><span class="req-label">Владелец</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name].filter(Boolean).join(' '))+'</span></div>' +
-    '<div class="req-row"><span class="req-label">Р/с</span><span class="req-val">'+escapeHtml(acc.account_number)+'</span></div>' +
-    '<div class="req-row"><span class="req-label">Карта</span><span class="req-val">'+escapeHtml(acc.card_number || '—')+'</span></div>' +
-    '<div class="req-row"><span class="req-label">БИК</span><span class="req-val">044525000</span></div>' +
-    '<div class="req-row"><span class="req-label">Корр. счёт</span><span class="req-val">30101810000000000000</span></div>' +
-    '<div class="req-row"><span class="req-label">Банк</span><span class="req-val">ООО «QwertyBank»</span></div>' +
-  '</div>';
+  $('reqBody').innerHTML = '<div class="req-card"><div class="req-row"><span class="req-label">Владелец</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name].filter(Boolean).join(' '))+'</span></div><div class="req-row"><span class="req-label">Р/с</span><span class="req-val">'+escapeHtml(acc.account_number)+'</span></div><div class="req-row"><span class="req-label">Карта</span><span class="req-val">'+escapeHtml(acc.card_number || '—')+'</span></div><div class="req-row"><span class="req-label">БИК</span><span class="req-val">044525000</span></div><div class="req-row"><span class="req-label">Банк</span><span class="req-val">ООО «QwertyBank»</span></div></div>';
   showScreen('req');
 }
 
-/* ---------- Закрытие / пересоздание ---------- */
 function openClose(){
   if (state.user.status === 'blocked'){ alert('Счёт заблокирован. Обратитесь в поддержку.'); return; }
   if (state.user.status === 'close_pending'){ alert('Заявка уже отправлена'); return; }
   if (state.user.status === 'closed'){
-    // пересоздание
-    $('closeTitle').textContent = 'Пересоздать счёт';
-    $('closeSub').textContent = 'Введите KYC-данные заново. QwertyJob получит уведомление.';
-    $('closeFields').style.display = 'none';
-    $('recreateFields').style.display = '';
-    $('closeCalc').innerHTML = '';
-    $('rcSur').value = ''; $('rcNm').value = ''; $('rcPat').value = '';
-    $('rcDob').value = ''; $('rcCw').value = '';
-    $('clSubmit').textContent = 'Пересоздать';
-    $('clSubmit').setAttribute('data-mode', 'recreate');
-    hideMsg($('closeMsg'));
-    showScreen('close');
-    return;
+    $('closeTitle').textContent = 'Пересоздать счёт'; $('closeSub').textContent = 'Введите KYC-данные заново.';
+    $('closeFields').style.display = 'none'; $('recreateFields').style.display = ''; $('closeCalc').innerHTML = '';
+    $('rcSur').value = ''; $('rcNm').value = ''; $('rcPat').value = ''; $('rcDob').value = ''; $('rcCw').value = '';
+    $('clSubmit').textContent = 'Пересоздать'; $('clSubmit').setAttribute('data-mode', 'recreate'); hideMsg($('closeMsg')); showScreen('close'); return;
   }
-  $('closeTitle').textContent = 'Закрытие счёта';
-  $('closeSub').textContent = 'Заявка уйдёт в поддержку. Комиссия 20% в пользу банка.';
-  $('closeFields').style.display = '';
-  $('recreateFields').style.display = 'none';
+  $('closeTitle').textContent = 'Закрытие счёта'; $('closeSub').textContent = 'Заявка уйдёт в поддержку. Комиссия 20% в пользу банка.';
+  $('closeFields').style.display = ''; $('recreateFields').style.display = 'none';
   $('clAcc').value = ''; $('clBik').value = ''; $('clBank').value = ''; $('clInn').value = ''; $('clNote').value = '';
-  const total = state.accounts.reduce((s,a) => s + Number(a.balance), 0);
-  const fee = Math.round(total * 0.2);
-  $('closeCalc').innerHTML =
-    '<div class="req-row"><span class="req-label">Всего на счетах</span><span class="req-val">'+fmtMoney(total)+' ₽</span></div>' +
-    '<div class="req-row"><span class="req-label">Комиссия (20%)</span><span class="req-val">'+fmtMoney(fee)+' ₽</span></div>' +
-    '<div class="req-row"><span class="req-label">К выводу</span><span class="req-val">'+fmtMoney(total-fee)+' ₽</span></div>';
-  $('clSubmit').textContent = 'Отправить заявку';
-  $('clSubmit').setAttribute('data-mode', 'close');
-  hideMsg($('closeMsg'));
-  showScreen('close');
+  const total = state.accounts.reduce((s,a) => s + Number(a.balance), 0); const fee = Math.round(total * 0.2);
+  $('closeCalc').innerHTML = '<div class="req-row"><span class="req-label">Всего на счетах</span><span class="req-val">'+fmtMoney(total)+' ₽</span></div><div class="req-row"><span class="req-label">Комиссия (20%)</span><span class="req-val">'+fmtMoney(fee)+' ₽</span></div><div class="req-row"><span class="req-label">К выводу</span><span class="req-val">'+fmtMoney(total-fee)+' ₽</span></div>';
+  $('clSubmit').textContent = 'Отправить заявку'; $('clSubmit').setAttribute('data-mode', 'close'); hideMsg($('closeMsg')); showScreen('close');
 }
 async function submitClose(){
   const mode = $('clSubmit').getAttribute('data-mode');
   try {
     hideMsg($('closeMsg'));
     if (mode === 'close'){
-      const body = {
-        action: 'create',
-        req_account: $('clAcc').value.trim(),
-        req_bik: $('clBik').value.trim(),
-        req_bank: $('clBank').value.trim(),
-        req_inn: $('clInn').value.trim(),
-        comment: $('clNote').value.trim()
-      };
+      const body = { action: 'create', req_account: $('clAcc').value.trim(), req_bik: $('clBik').value.trim(), req_bank: $('clBank').value.trim(), req_inn: $('clInn').value.trim(), comment: $('clNote').value.trim() };
       if (!body.req_account || !body.req_bik || !body.req_bank) return showMsg($('closeMsg'), 'Заполните реквизиты', 'error');
-      await api('/close-request', { method:'POST', body });
-      await loadMe();
-      showMsg($('closeMsg'), 'Заявка отправлена', 'success');
-      setTimeout(() => showScreen('lk'), 700);
+      await api('/close-request', { method:'POST', body }); await loadMe(); showMsg($('closeMsg'), 'Заявка отправлена', 'success'); setTimeout(() => showScreen('lk'), 700);
     } else {
-      const body = {
-        action:'recreate',
-        surname: $('rcSur').value.trim(),
-        name: $('rcNm').value.trim(),
-        patronymic: $('rcPat').value.trim(),
-        dob: $('rcDob').value,
-        codeword: $('rcCw').value.trim()
-      };
-      if (!body.surname || !body.name || !body.dob || !body.codeword)
-        return showMsg($('closeMsg'), 'Заполните все поля', 'error');
-      await api('/close-request', { method:'POST', body });
-      await loadMe();
-      showMsg($('closeMsg'), 'Счёт пересоздан', 'success');
-      setTimeout(() => showScreen('lk'), 700);
+      const body = { action:'recreate', surname: $('rcSur').value.trim(), name: $('rcNm').value.trim(), patronymic: $('rcPat').value.trim(), dob: $('rcDob').value, codeword: $('rcCw').value.trim() };
+      if (!body.surname || !body.name || !body.dob || !body.codeword) return showMsg($('closeMsg'), 'Заполните все поля', 'error');
+      await api('/close-request', { method:'POST', body }); await loadMe(); showMsg($('closeMsg'), 'Счёт пересоздан', 'success'); setTimeout(() => showScreen('lk'), 700);
     }
-  } catch(e){
-    showMsg($('closeMsg'), e.message, 'error');
-  }
+  } catch(e){ showMsg($('closeMsg'), e.message, 'error'); }
 }
 
-/* ---------- Поиск ---------- */
-async function searchTransactions(q){
-  try {
-    const data = await api('/transactions?search=' + encodeURIComponent(q));
-    return data.transactions;
-  } catch(e){ return []; }
-}
-
-/* ---------- Документы ---------- */
 const DOCS = {
-  privacy: { title:'Политика конфиденциальности', html:'<h3>1. Общие положения</h3><p>Политика определяет порядок обработки персональных данных пользователей QwertyBank в соответствии с ФЗ № 152-ФЗ. Используя сервис, вы соглашаетесь с условиями.</p><h3>2. Данные</h3><ul><li>ФИО, телефон, email, дата рождения;</li><li>данные о счетах, картах, операциях;</li><li>технические данные.</li></ul><h3>3. Цели</h3><p>Идентификация, проведение платежей, антифрод, исполнение 115-ФЗ.</p><h3>4. Права</h3><p>Доступ, исправление, удаление — через поддержку.</p>' },
-  terms: { title:'Условия обслуживания', html:'<h3>1. Предмет</h3><p>Банк открывает клиенту текущий счёт в рублях РФ и предоставляет доступ к дистанционному обслуживанию.</p><h3>2. Регистрация</h3><p>Клиент предоставляет ФИО, телефон, email, дату рождения и кодовое слово. Данные фиксируются и не могут быть изменены без поддержки.</p><h3>3. Операции</h3><p>Все переводы проходят антифрод-проверку. При подозрении операция блокируется, средства остаются у отправителя.</p><h3>4. Блокировка</h3><p>После 3 заблокированных переводов счёт блокируется, требуется обращение в поддержку.</p>' },
-  kyc: { title:'KYC-верификация', html:'<h3>1. Когда банк запрашивает KYC</h3><p>Если банк замечает подозрительное поведение в личном кабинете — нетипичные устройства, частые смены реквизитов, многократные неудачные входы, крупные переводы новым получателям — запрашивается KYC-верификация: повторное подтверждение личности и кодового слова через поддержку.</p><h3>2. Порядок</h3><p>Пользователь получает уведомление и баннер в ЛК. Для продолжения операций нужно связаться с поддержкой в чате и подтвердить данные.</p><h3>3. Верификация в QwertyJob</h3><p>Сотрудник поддержки проверяет данные и принимает решение: подтвердить личность, ограничить или разблокировать счёт.</p>' },
-  amla: { title:'115-ФЗ: противодействие отмыванию', html:'<h3>Обязанности банка</h3><ul><li>идентификация клиентов;</li><li>мониторинг операций;</li><li>приостановление сомнительных операций;</li><li>направление сведений в Росфинмониторинг.</li></ul><h3>Последствия</h3><p>При выявлении сомнительных операций банк вправе заблокировать счёт и потребовать верификацию.</p>' },
-  close: { title:'Правила закрытия счёта', html:'<h3>1. Порядок</h3><p>Клиент подаёт заявку через настройки. Заявка уходит в поддержку QwertyJob.</p><h3>2. Комиссия</h3><p>При закрытии удерживается <strong>20%</strong> от общего остатка в пользу банка.</p><h3>3. Реквизиты</h3><p>Клиент указывает счёт, БИК, банк и ИНН/КПП для вывода остатка.</p><h3>4. Пересоздание</h3><p>После закрытия можно пересоздать счёт с новым KYC и уведомлением QwertyJob.</p>' },
+  privacy: { title:'Политика конфиденциальности', html:'<h3>1. Общие положения</h3><p>Политика определяет порядок обработки персональных данных пользователей QwertyBank в соответствии с ФЗ № 152-ФЗ.</p><h3>2. Данные</h3><ul><li>ФИО, телефон, email, дата рождения;</li><li>данные о счетах, картах, операциях;</li><li>технические данные.</li></ul><h3>3. Цели</h3><p>Идентификация, проведение платежей, антифрод, исполнение 115-ФЗ.</p>' },
+  terms: { title:'Условия обслуживания', html:'<h3>1. Предмет</h3><p>Банк открывает клиенту текущий счёт в рублях РФ и предоставляет доступ к дистанционному обслуживанию.</p><h3>2. Регистрация</h3><p>Клиент предоставляет ФИО, телефон, email, дату рождения и кодовое слово. Данные фиксируются и не могут быть изменены без поддержки.</p>' },
+  kyc: { title:'KYC-верификация', html:'<h3>1. Когда банк запрашивает KYC</h3><p>Если банк замечает подозрительное поведение в личном кабинете — нетипичные устройства, частые смены реквизитов, многократные неудачные входы, крупные переводы новым получателям — запрашивается KYC-верификация.</p>' },
+  amla: { title:'115-ФЗ: противодействие отмыванию', html:'<h3>Обязанности банка</h3><ul><li>идентификация клиентов;</li><li>мониторинг операций;</li><li>приостановление сомнительных операций;</li><li>направление сведений в Росфинмониторинг.</li></ul>' },
+  close: { title:'Правила закрытия счёта', html:'<h3>1. Порядок</h3><p>Клиент подаёт заявку через настройки. Заявка уходит в поддержку QwertyJob.</p><h3>2. Комиссия</h3><p>При закрытии удерживается <strong>20%</strong> от общего остатка в пользу банка.</p>' },
   contacts: { title:'Реквизиты и контакты', html:'<h3>Юридические реквизиты</h3><p><strong>ООО «QwertyBank»</strong><br>ИНН: 0000000000<br>ОГРН: 0000000000000</p><h3>Контакты</h3><p>Телефон: 8 800 000-00-00<br>Email: support@qwertybank.ru</p>' }
 };
 
-/* ---------- Инициализация ---------- */
 function init(){
-  applyTheme();
-
-  // Вход
-  $('phoneInput').addEventListener('input', e => {
-    e.target.value = fmtPhone(normPhone(e.target.value));
-  });
+  $('phoneInput').addEventListener('input', e => { e.target.value = fmtPhone(normPhone(e.target.value)); });
   $('continueBtn').addEventListener('click', async () => {
     try {
-      hideMsg($('phoneMsg'));
-      const phone = normPhone($('phoneInput').value);
+      hideMsg($('phoneMsg')); const phone = normPhone($('phoneInput').value);
       if (phone.length !== 10) return showMsg($('phoneMsg'), 'Введите 10 цифр', 'error');
-      const r = await api('/login', { method:'POST', body:{ phone } });
-      state.phone = phone;
-      if (r.exists){
-        // Открыть PIN-ввод
-        state.pinCurrent = '';
-        renderPinDots($('pinLoginDots'), 0);
-        $('pinLoginSub').textContent = '+7 ' + fmtPhone(phone);
-        hideMsg($('pinLoginMsg'));
-        showScreen('pinLogin');
-      }
+      const r = await api('/login', { method:'POST', body:{ phone } }); state.phone = phone;
+      if (r.exists){ state.pinCurrent = ''; renderPinDots($('pinLoginDots'), 0); $('pinLoginSub').textContent = '+7 ' + fmtPhone(phone); hideMsg($('pinLoginMsg')); showScreen('pinLogin'); }
     } catch(e){
-      if (e.data && e.data.error === 'Номер не зарегистрирован'){
-        // Начать регистрацию
-        state.phone = normPhone($('phoneInput').value);
-        $('surInput').value = ''; $('nmInput').value = '';
-        $('patInput').value = ''; $('dobInput').value = '';
-        $('cwInput').value = ''; $('emInput').value = '';
-        $('emCodeField').style.display = 'none';
-        $('emVerifyBtn').style.display = 'none';
-        $('emSendBtn').style.display = '';
-        hideMsg($('regMsg'));
-        showScreen('reg');
-      } else {
-        showMsg($('phoneMsg'), e.message, 'error');
-      }
+      if (e.message === 'Номер не зарегистрирован'){
+        state.phone = normPhone($('phoneInput').value); $('surInput').value = ''; $('nmInput').value = ''; $('patInput').value = ''; $('dobInput').value = ''; $('cwInput').value = ''; $('emInput').value = '';
+        $('emCodeField').style.display = 'none'; $('emVerifyBtn').style.display = 'none'; $('emSendBtn').style.display = ''; hideMsg($('regMsg')); showScreen('reg');
+      } else showMsg($('phoneMsg'), e.message, 'error');
     }
   });
 
-  // Регистрация
-  $('emSendBtn').addEventListener('click', sendEmailCode);
-  $('emVerifyBtn').addEventListener('click', verifyEmail);
-  $('regBackBtn').addEventListener('click', () => showScreen('phone'));
+  $('emSendBtn').addEventListener('click', sendEmailCode); $('emVerifyBtn').addEventListener('click', verifyEmail); $('regBackBtn').addEventListener('click', () => showScreen('phone'));
+  bindPinPad($('pinCreatePad'), 'create'); bindPinPad($('pinLoginPad'), 'login');
+  $('pinCreateBack').addEventListener('click', () => { state.pinCurrent = ''; state.pinStage1 = ''; state.pinMode = 'create'; renderPinDots($('pinCreateDots'), 0); showScreen(state.pendingReg ? 'reg' : 'phone'); });
+  $('pinLoginCancel').addEventListener('click', () => { state.pinCurrent = ''; renderPinDots($('pinLoginDots'), 0); showScreen('phone'); });
 
-  // PIN
-  bindPinPad($('pinCreatePad'), 'create');
-  bindPinPad($('pinLoginPad'), 'login');
-  $('pinCreateBack').addEventListener('click', () => {
-    state.pinCurrent = ''; state.pinStage1 = ''; state.pinMode = 'create';
-    renderPinDots($('pinCreateDots'), 0);
-    showScreen(state.pendingReg ? 'reg' : 'phone');
-  });
-  $('pinLoginCancel').addEventListener('click', () => {
-    state.pinCurrent = '';
-    renderPinDots($('pinLoginDots'), 0);
-    showScreen('phone');
-  });
-
-  // ЛК
-  $('logoutBtn').addEventListener('click', () => {
-    state.token = null;
-    localStorage.removeItem(TOKEN_KEY);
-    state.user = null;
-    $('phoneInput').value = '';
-    showScreen('phone');
-  });
-  $('notifBtn').addEventListener('click', openNotifications);
-  $('notifBack').addEventListener('click', () => showScreen('lk'));
-  $('supportBtn').addEventListener('click', openChat);
-  $('chatBack').addEventListener('click', () => showScreen('lk'));
-  $('chatSend').addEventListener('click', sendChat);
-  $('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
-
-  // Статистика
-  $('statIn').addEventListener('click', () => openHistory('in'));
-  $('statOut').addEventListener('click', () => openHistory('out'));
-
-  // Действия
-  $('topupBtn').addEventListener('click', () => showScreen('topup'));
-  $('topupBack').addEventListener('click', () => showScreen('lk'));
-  $('transferBtn').addEventListener('click', () => {
-    $('trPhone').value = ''; $('trAmount').value = ''; $('trComment').value = '';
-    hideMsg($('trMsg'));
-    showScreen('transfer');
-  });
+  $('logoutBtn').addEventListener('click', () => { state.token = null; localStorage.removeItem(TOKEN_KEY); state.user = null; $('phoneInput').value = ''; showScreen('phone'); });
+  $('notifBtn').addEventListener('click', openNotifications); $('notifBack').addEventListener('click', () => showScreen('lk'));
+  $('supportBtn').addEventListener('click', openChat); $('chatBack').addEventListener('click', () => showScreen('lk')); $('chatSend').addEventListener('click', sendChat);
+  $('statIn').addEventListener('click', () => openHistory('in')); $('statOut').addEventListener('click', () => openHistory('out'));
+  $('topupBtn').addEventListener('click', () => showScreen('topup')); $('topupBack').addEventListener('click', () => showScreen('lk'));
+  $('transferBtn').addEventListener('click', () => { $('trPhone').value = ''; $('trAmount').value = ''; $('trComment').value = ''; hideMsg($('trMsg')); showScreen('transfer'); });
   $('transferBack').addEventListener('click', () => showScreen('lk'));
   $('trPhone').addEventListener('input', e => { e.target.value = fmtPhone(normPhone(e.target.value)); });
-  $('trAmount').addEventListener('input', e => {
-    const d = String(e.target.value).replace(/\D/g,'').slice(0,9);
-    e.target.value = d ? Number(d).toLocaleString('ru-RU') : '';
-  });
   $('trSendBtn').addEventListener('click', doTransfer);
-
-  $('salaryBtn').addEventListener('click', () => {
-    if (state.accounts.some(a => a.type === 'salary')){
-      // показать реквизиты зарплатного счёта
-      const sal = state.accounts.find(a => a.type === 'salary');
-      state.activeAccountId = sal.id;
-      renderLK();
-      openReq();
-    } else {
-      createSalary();
-    }
-  });
-
-  // Между счетами
-  $('betweenBack').addEventListener('click', () => showScreen('lk'));
-  $('btAmount').addEventListener('input', e => {
-    const d = String(e.target.value).replace(/\D/g,'').slice(0,9);
-    e.target.value = d ? Number(d).toLocaleString('ru-RU') : '';
-  });
-  $('btSend').addEventListener('click', doBetween);
-
-  // Настройки
-  $('settingsBtn').addEventListener('click', () => {
-    $('sProfileName').textContent = [state.user.surname, state.user.name, state.user.patronymic].filter(Boolean).join(' ');
-    $('sRecreateBtn').style.display = state.user.status === 'closed' ? '' : 'none';
-    showScreen('settings');
-  });
+  $('salaryBtn').addEventListener('click', () => { if (state.accounts.some(a => a.type === 'salary')){ const sal = state.accounts.find(a => a.type === 'salary'); state.activeAccountId = sal.id; renderLK(); openReq(); } else { createSalary(); } });
+  $('betweenBack').addEventListener('click', () => showScreen('lk')); $('btSend').addEventListener('click', doBetween);
+  $('settingsBtn').addEventListener('click', () => { $('sProfileName').textContent = [state.user.surname, state.user.name, state.user.patronymic].filter(Boolean).join(' '); $('sRecreateBtn').style.display = state.user.status === 'closed' ? '' : 'none'; showScreen('settings'); });
   $('settingsBack').addEventListener('click', () => showScreen('lk'));
-  $('sProfileBtn').addEventListener('click', () => {
-    openDialog({
-      title:'Личные данные',
-      sub:'Данные жёстко привязаны к номеру телефона. Изменение — только через поддержку.',
-      body:'<div class="req-card">' +
-        '<div class="req-row"><span class="req-label">ФИО</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name,state.user.patronymic].filter(Boolean).join(' '))+'</span></div>' +
-        '<div class="req-row"><span class="req-label">Телефон</span><span class="req-val">+7 '+fmtPhone(state.user.phone)+'</span></div>' +
-        '<div class="req-row"><span class="req-label">Email</span><span class="req-val">'+escapeHtml(state.user.email)+'</span></div>' +
-        '<div class="req-row"><span class="req-label">Дата рождения</span><span class="req-val">'+escapeHtml(state.user.dob || '—')+'</span></div>' +
-      '</div>',
-      hideCancel:true, okText:'Понятно'
-    });
-  });
-  $('sReqBtn').addEventListener('click', openReq);
-  $('sCloseBtn').addEventListener('click', openClose);
-  $('sRecreateBtn').addEventListener('click', openClose);
-  $('closeBack').addEventListener('click', () => showScreen('settings'));
-  $('clSubmit').addEventListener('click', submitClose);
-
-  // Детали операции / история
-  $('txBack').addEventListener('click', () => showScreen('lk'));
-  $('historyBack').addEventListener('click', () => showScreen('lk'));
-  $('histSearch').addEventListener('input', async e => {
-    const q = e.target.value.trim();
-    if (q.length < 2){ renderTxList($('histList'), state.allTransactions.slice(0, 50)); return; }
-    const txs = await searchTransactions(q);
-    renderTxList($('histList'), txs);
-  });
-
-  // Успех
+  $('sProfileBtn').addEventListener('click', () => { openDialog({ title:'Личные данные', sub:'Данные жёстко привязаны к номеру телефона.', body:'<div class="req-card"><div class="req-row"><span class="req-label">ФИО</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name,state.user.patronymic].filter(Boolean).join(' '))+'</span></div><div class="req-row"><span class="req-label">Телефон</span><span class="req-val">+7 '+fmtPhone(state.user.phone)+'</span></div><div class="req-row"><span class="req-label">Email</span><span class="req-val">'+escapeHtml(state.user.email)+'</span></div></div>', hideCancel:true, okText:'Понятно' }); });
+  $('sReqBtn').addEventListener('click', openReq); $('sCloseBtn').addEventListener('click', openClose); $('sRecreateBtn').addEventListener('click', openClose);
+  $('closeBack').addEventListener('click', () => showScreen('settings')); $('clSubmit').addEventListener('click', submitClose);
+  $('txBack').addEventListener('click', () => showScreen('lk')); $('historyBack').addEventListener('click', () => showScreen('lk'));
   $('sucDone').addEventListener('click', async () => { await loadMe(); });
-
-  // Поиск в ЛК
-  $('globalSearch').addEventListener('keydown', async e => {
-    if (e.key !== 'Enter') return;
-    const q = e.target.value.trim();
-    if (!q) return;
-    // Проверим, не запрос ли это про зарплатный счёт
-    if (/зарплат|создать|salary/i.test(q)){
-      if (state.accounts.some(a => a.type === 'salary')){
-        const sal = state.accounts.find(a => a.type === 'salary');
-        state.activeAccountId = sal.id;
-        renderLK();
-        openReq();
-      } else {
-        createSalary();
-      }
-      return;
-    }
-    openHistory('all', q);
-  });
-
-  // Документы
+  $('globalSearch').addEventListener('keydown', async e => { if (e.key !== 'Enter') return; const q = e.target.value.trim(); if (!q) return; if (/зарплат|создать|salary/i.test(q)){ if (state.accounts.some(a => a.type === 'salary')){ const sal = state.accounts.find(a => a.type === 'salary'); state.activeAccountId = sal.id; renderLK(); openReq(); } else createSalary(); return; } openHistory('all', q); });
   $('docBack').addEventListener('click', () => showScreen('lk'));
-  document.querySelectorAll('.legal-link').forEach(b => {
-    b.addEventListener('click', () => {
-      const key = b.getAttribute('data-doc');
-      const doc = DOCS[key];
-      if (!doc) return;
-      $('docTitle').textContent = doc.title;
-      $('docBody').innerHTML = doc.html;
-      showScreen('doc');
-    });
-  });
+  document.querySelectorAll('.legal-link').forEach(b => { b.addEventListener('click', () => { const key = b.getAttribute('data-doc'); const doc = DOCS[key]; if (!doc) return; $('docTitle').textContent = doc.title; $('docBody').innerHTML = doc.html; showScreen('doc'); }); });
 
-  // Диалог
-  $('dlgCancel').addEventListener('click', closeDialog);
-  $('dlgOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDialog(); });
-  $('dlgOk').addEventListener('click', () => {
-    const cb = dlgCallback;
-    dlgCallback = null;
-    $('dlgOverlay').classList.remove('open');
-    if (cb) cb();
-  });
-
-  // Авто-вход
-  if (state.token){
-    loadMe().catch(() => {
-      state.token = null;
-      localStorage.removeItem(TOKEN_KEY);
-      showScreen('phone');
-    });
-  } else {
-    showScreen('phone');
-  }
+  if (state.token){ loadMe().catch(() => { state.token = null; localStorage.removeItem(TOKEN_KEY); showScreen('phone'); }); } else { showScreen('phone'); }
 }
 
-/* ---------- История ---------- */
-function openHistory(type, search){
-  $('historyTitle').textContent = type === 'in' ? 'Доходы' : type === 'out' ? 'Траты' : 'История операций';
-  $('histSearch').value = search || '';
-  let list = state.allTransactions;
-  if (type === 'in') list = list.filter(t => t.to_phone === state.user.phone);
-  if (type === 'out') list = list.filter(t => t.from_phone === state.user.phone);
-  if (search){
-    const q = search.toLowerCase();
-    list = list.filter(t =>
-      (t.tx_number||'').toLowerCase().includes(q) ||
-      (t.comment||'').toLowerCase().includes(q) ||
-      (t.from_phone||'').includes(q) ||
-      (t.to_phone||'').includes(q)
-    );
-  }
-  renderTxList($('histList'), list);
-  showScreen('history');
-}
+function openHistory(type, search){ $('historyTitle').textContent = type === 'in' ? 'Доходы' : type === 'out' ? 'Траты' : 'История операций'; $('histSearch').value = search || ''; let list = state.allTransactions; if (type === 'in') list = list.filter(t => t.to_phone === state.user.phone); if (type === 'out') list = list.filter(t => t.from_phone === state.user.phone); if (search){ const q = search.toLowerCase(); list = list.filter(t => (t.tx_number||'').toLowerCase().includes(q) || (t.comment||'').toLowerCase().includes(q) || (t.from_phone||'').includes(q) || (t.to_phone||'').includes(q)); } renderTxList($('histList'), list); showScreen('history'); }
 
-/* ---------- Диалог ---------- */
 let dlgCallback = null;
-function openDialog(opts){
-  $('dlgTitle').textContent = opts.title || '';
-  $('dlgSub').textContent = opts.sub || '';
-  $('dlgSub').style.display = opts.sub ? '' : 'none';
-  $('dlgBody').innerHTML = opts.body || '';
-  $('dlgOk').textContent = opts.okText || 'OK';
-  $('dlgCancel').textContent = opts.cancelText || 'Отмена';
-  $('dlgCancel').style.display = opts.hideCancel ? 'none' : '';
-  dlgCallback = opts.onOk || null;
-  $('dlgOverlay').classList.add('open');
-}
+function openDialog(opts){ $('dlgTitle').textContent = opts.title || ''; $('dlgSub').textContent = opts.sub || ''; $('dlgSub').style.display = opts.sub ? '' : 'none'; $('dlgBody').innerHTML = opts.body || ''; $('dlgOk').textContent = opts.okText || 'OK'; $('dlgCancel').textContent = opts.cancelText || 'Отмена'; $('dlgCancel').style.display = opts.hideCancel ? 'none' : ''; dlgCallback = opts.onOk || null; $('dlgOverlay').classList.add('open'); }
 function closeDialog(){ $('dlgOverlay').classList.remove('open'); dlgCallback = null; }
-
 document.addEventListener('DOMContentLoaded', init);
 })();
 </script>
