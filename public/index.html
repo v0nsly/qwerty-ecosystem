@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>QwertyBank — онлайн-банк</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#1a1a1a;--text-2:#6b7280;--text-3:#8a8f98;--text-4:#b0b5bd;--border:#e5e7eb;--border-2:#f3f4f6;--surface:#f9fafb;--surface-2:#f3f4f6;--accent:#1a1a1a;--accent-text:#fff;--input-bg:#fff;--danger:#b91c1c;--danger-bg:#fef2f2;--success:#15803d;--success-bg:#f0fdf4;--warn:#b45309;--warn-bg:#fffbeb}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif}
+body{background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;color:var(--text)}
+.app{max-width:440px;width:100%;background:var(--card);border-radius:20px;padding:32px 22px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06)}
+@media(max-width:420px){body{padding:0}.app{border-radius:0;min-height:100vh;padding:20px 16px 16px}}
+.logo{display:flex;align-items:center;gap:8px;margin-bottom:24px}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.logo-text{font-size:18px;font-weight:600}
+.screen-title{font-size:24px;font-weight:700;letter-spacing:-.6px;margin-bottom:6px}
+.screen-sub{font-size:13px;color:var(--text-3);margin-bottom:20px;line-height:1.5}
+.field{margin-bottom:14px}
+.field-label{display:block;font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:6px}
+.phone-row{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--input-bg)}
+.phone-row:focus-within{border-color:var(--accent)}
+.prefix{padding:12px 11px 12px 13px;font-weight:600;font-size:15px;border-right:1px solid var(--border);background:var(--surface)}
+.phone-row input{flex:1;border:none;outline:none;padding:12px;font-size:15px;font-weight:500;background:transparent;min-width:0;color:var(--text)}
+.input-text{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:15px;font-weight:500;background:var(--input-bg);outline:none;color:var(--text);font-family:inherit}
+.input-text:focus{border-color:var(--accent)}
+.btn{width:100%;padding:13px 16px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:var(--accent);color:var(--accent-text)}
+.btn-primary:disabled{background:var(--border);color:var(--text-4);cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--text-2);padding:9px;font-size:13px}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger)}
+.msg{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45;font-weight:500}
+.msg.show{display:block}
+.msg.error{background:var(--danger-bg);color:var(--danger)}
+.msg.success{background:var(--success-bg);color:var(--success)}
+.msg.info{background:var(--surface);color:var(--text-2)}
+.screen{display:none}
+.screen.active{display:block}
+.footer-note{text-align:center;font-size:11px;color:var(--text-4);margin-top:16px;line-height:1.5}
+.lk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:6px}
+.lk-user{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid var(--border);flex-shrink:0}
+.lk-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk-phone{font-size:11px;color:var(--text-2);margin-top:1px}
+.lk-actions-row{display:flex;gap:4px}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text-2);cursor:pointer;position:relative;display:flex}
+.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+.badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;font-size:10px;font-weight:700;min-width:16px;text-align:center}
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 12px;margin-bottom:14px}
+.search-bar svg{width:16px;height:16px;stroke:var(--text-3);fill:none;stroke-width:2}
+.search-bar input{flex:1;border:none;outline:none;background:transparent;font-size:13px;color:var(--text);font-family:inherit;min-width:0}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer}
+.stat-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.stat-value{font-size:19px;font-weight:700}
+.stat-value.in{color:var(--success)}
+.stat-value.out{color:var(--text)}
+.account-switcher{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.account-chip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 11px;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0}
+.account-chip.active{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.account-chip .sub{display:block;font-size:10px;font-weight:500;opacity:.7;margin-top:2px}
+.balance-card{background:var(--accent);color:var(--accent-text);border-radius:16px;padding:20px;margin-bottom:14px}
+.balance-label{font-size:11px;font-weight:500;opacity:.55;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.balance-value{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1}
+.balance-value span{font-size:19px;font-weight:600;opacity:.55;margin-left:3px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
+.action{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 6px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;font-family:inherit;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.action .action-icon{font-size:16px}
+.action .soon{font-size:9px;font-weight:500;color:var(--text-3);text-transform:uppercase}
+.section-title{font-size:14px;font-weight:600;margin-bottom:10px}
+.tx{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-2);gap:8px;cursor:pointer}
+.tx:last-child{border-bottom:none}
+.tx-left{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.tx-icon{width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.tx-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-meta{font-size:10px;color:var(--text-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-amount{font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.tx-amount.plus{color:var(--success)}
+.tx-amount.frozen{color:var(--warn);text-decoration:line-through}
+.empty{text-align:center;font-size:13px;color:var(--text-2);padding:18px 0}
+.back-btn{background:none;border:none;color:var(--text-2);font-size:14px;font-weight:500;cursor:pointer;padding:0 0 12px 0;font-family:inherit}
+.list-item{display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;cursor:pointer;text-align:left;width:100%;font-family:inherit;color:var(--text)}
+.list-item.soon{opacity:.65;cursor:not-allowed}
+.list-item .li-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface-2);font-size:15px}
+.list-item .li-body{flex:1;min-width:0}
+.list-item .li-title{font-size:13px;font-weight:600}
+.list-item .li-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+.list-item .li-arrow{color:var(--text-4);font-size:16px}
+.notif{display:flex;gap:10px;padding:12px 13px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;cursor:pointer;text-align:left;width:100%;font-family:inherit;color:var(--text);position:relative}
+.notif.unread{border-color:var(--accent)}
+.notif .n-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface-2);font-size:15px}
+.notif .n-body{flex:1;min-width:0}
+.notif .n-title{font-size:12px;font-weight:600}
+.notif .n-text{font-size:11px;color:var(--text-2);margin-top:2px;line-height:1.4}
+.notif .n-date{font-size:10px;color:var(--text-4);margin-top:3px}
+.notif .n-dot{width:7px;height:7px;border-radius:50%;background:var(--danger);flex-shrink:0;margin-top:6px}
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 280px);min-height:300px}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:6px 0;margin-bottom:10px}
+.chat-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.4;word-wrap:break-word}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-text);border-bottom-right-radius:4px}
+.chat-msg.support{align-self:flex-start;background:var(--surface-2);color:var(--text);border-bottom-left-radius:4px}
+.chat-msg.system{align-self:center;background:var(--surface);color:var(--text-3);font-size:11px;font-style:italic;text-align:center;max-width:90%}
+.chat-msg .cm-time{display:block;font-size:10px;opacity:.65;margin-top:3px}
+.chat-input-row{display:flex;gap:6px}
+.chat-input-row input{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;font-size:13px;background:var(--input-bg);color:var(--text);outline:none;font-family:inherit}
+.chat-input-row .btn{width:auto;padding:11px 16px}
+.pin-display{display:flex;justify-content:center;gap:12px;margin:18px 0 22px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--text-4);background:transparent}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.05)}
+.pin-dot.error{background:var(--danger);border-color:var(--danger)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.pin-key{aspect-ratio:1.5/1;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.pin-key.empty{background:transparent;border:none;cursor:default}
+.pin-key.backspace svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.pin-cancel{background:none;border:none;color:var(--text-2);font-size:13px;cursor:pointer;padding:8px;width:100%;font-family:inherit}
+.dialog-overlay{display:none;position:fixed;inset:0;background:rgba(15,20,30,.55);backdrop-filter:blur(4px);z-index:110;align-items:center;justify-content:center;padding:16px}
+.dialog-overlay.open{display:flex}
+.dialog{background:var(--card);width:100%;max-width:380px;border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2);max-height:88vh;overflow-y:auto}
+.dialog-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.dialog-sub{font-size:13px;color:var(--text-3);margin-bottom:14px;line-height:1.45}
+.dialog-actions{display:flex;gap:8px;margin-top:14px}
+.dialog-actions .btn{padding:11px 14px;font-size:14px}
+.dialog-actions .btn-secondary{background:var(--surface-2);color:var(--text)}
+.verification-banner{background:var(--warn-bg);border:1px solid var(--warn);color:var(--warn);border-radius:12px;padding:11px 13px;margin-bottom:12px;font-size:12px;line-height:1.45}
+.verification-banner strong{display:block;margin-bottom:4px;font-size:13px}
+.legal-footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border-2)}
+.legal-links{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:8px;justify-content:center}
+.legal-link{font-size:10.5px;color:var(--text-3);background:none;border:none;padding:0;cursor:pointer;font-family:inherit}
+.legal-meta{font-size:10px;color:var(--text-4);text-align:center;line-height:1.5;margin-bottom:6px}
+.legal-copy{font-size:10px;color:var(--text-4);text-align:center;line-height:1.5}
+.req-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:12px}
+.req-card .req-row{display:flex;justify-content:space-between;padding:6px 0;gap:8px;border-bottom:1px solid var(--border-2)}
+.req-card .req-row:last-child{border-bottom:none}
+.req-card .req-label{color:var(--text-2);flex-shrink:0}
+.req-card .req-val{font-weight:600;text-align:right;word-break:break-all;min-width:0}
+.tx-detail-row{padding:8px 0;border-bottom:1px solid var(--border-2);font-size:13px}
+.tx-detail-row:last-child{border-bottom:none}
+.tx-detail-row .lbl{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.tx-detail-row .val{font-weight:600;word-break:break-word}
+.hist-search{display:flex;gap:6px;margin-bottom:10px}
+.hist-search input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;font-size:13px;background:var(--input-bg);color:var(--text);outline:none;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- 1. ВХОД -->
+<div class="screen active" id="screenPhone">
+  <div class="logo"><div class="logo-mark">q</div><span class="logo-text">QwertyBank</span></div>
+  <h1 class="screen-title">Вход</h1>
+  <p class="screen-sub">Введите номер телефона, привязанный к профилю.</p>
+  <div class="field"><label class="field-label">Номер телефона</label>
+    <div class="phone-row"><span class="prefix">+7</span>
+      <input type="tel" id="phoneInput" placeholder="900 123 45 67" maxlength="14" inputmode="numeric" autocomplete="off">
+    </div>
+  </div>
+  <button class="btn btn-primary" id="continueBtn">Продолжить</button>
+  <div class="msg" id="phoneMsg"></div>
+  <p class="footer-note">Продолжая, вы принимаете условия обслуживания</p>
+</div>
+
+<!-- 2. РЕГИСТРАЦИЯ -->
+<div class="screen" id="screenReg">
+  <div class="logo"><div class="logo-mark">q</div><span class="logo-text">QwertyBank</span></div>
+  <h1 class="screen-title">Регистрация</h1>
+  <p class="screen-sub">Данные жёстко привязаны к номеру телефона. Изменить можно только через поддержку.</p>
+  <div class="field"><label class="field-label">Фамилия</label><input class="input-text" id="surInput" maxlength="50"></div>
+  <div class="field"><label class="field-label">Имя</label><input class="input-text" id="nmInput" maxlength="50"></div>
+  <div class="field"><label class="field-label">Отчество (необязательно)</label><input class="input-text" id="patInput" maxlength="50"></div>
+  <div class="field"><label class="field-label">Дата рождения</label><input class="input-text" id="dobInput" type="date"></div>
+  <div class="field"><label class="field-label">Кодовое слово</label><input class="input-text" id="cwInput" maxlength="40"></div>
+  <div class="field"><label class="field-label">Email</label><input class="input-text" id="emInput" type="email" maxlength="80"></div>
+  <button class="btn btn-primary" id="emSendBtn">Отправить код на email</button>
+  <div class="field" id="emCodeField" style="display:none;margin-top:14px">
+    <label class="field-label">Код из письма (демо: показан в консоли)</label>
+    <input class="input-text" id="emCodeInput" maxlength="4" inputmode="numeric">
+  </div>
+  <button class="btn btn-primary" id="emVerifyBtn" style="display:none;margin-top:8px">Подтвердить email</button>
+  <button class="btn btn-ghost" id="regBackBtn">← Изменить номер</button>
+  <div class="msg" id="regMsg"></div>
+</div>
+
+<!-- 3. PIN CREATE -->
+<div class="screen" id="screenPinCreate">
+  <div class="logo"><div class="logo-mark">q</div><span class="logo-text">QwertyBank</span></div>
+  <h1 class="screen-title">Придумайте PIN</h1>
+  <p class="screen-sub">4 цифры для входа.</p>
+  <div class="pin-display" id="pinCreateDots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div class="pin-pad" id="pinCreatePad">
+    <button class="pin-key" data-d="1">1</button><button class="pin-key" data-d="2">2</button><button class="pin-key" data-d="3">3</button>
+    <button class="pin-key" data-d="4">4</button><button class="pin-key" data-d="5">5</button><button class="pin-key" data-d="6">6</button>
+    <button class="pin-key" data-d="7">7</button><button class="pin-key" data-d="8">8</button><button class="pin-key" data-d="9">9</button>
+    <button class="pin-key empty"></button><button class="pin-key" data-d="0">0</button>
+    <button class="pin-key backspace" data-a="back">⌫</button>
+  </div>
+  <button class="pin-cancel" id="pinCreateBack">← Назад</button>
+  <div class="msg" id="pinCreateMsg"></div>
+</div>
+
+<!-- 4. PIN LOGIN -->
+<div class="screen" id="screenPinLogin">
+  <div class="logo"><div class="logo-mark">q</div><span class="logo-text">QwertyBank</span></div>
+  <h1 class="screen-title">Введите PIN</h1>
+  <p class="screen-sub" id="pinLoginSub">Для входа</p>
+  <div class="pin-display" id="pinLoginDots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div class="pin-pad" id="pinLoginPad">
+    <button class="pin-key" data-d="1">1</button><button class="pin-key" data-d="2">2</button><button class="pin-key" data-d="3">3</button>
+    <button class="pin-key" data-d="4">4</button><button class="pin-key" data-d="5">5</button><button class="pin-key" data-d="6">6</button>
+    <button class="pin-key" data-d="7">7</button><button class="pin-key" data-d="8">8</button><button class="pin-key" data-d="9">9</button>
+    <button class="pin-key empty"></button><button class="pin-key" data-d="0">0</button>
+    <button class="pin-key backspace" data-a="back">⌫</button>
+  </div>
+  <button class="pin-cancel" id="pinLoginCancel">Отмена</button>
+  <div class="msg" id="pinLoginMsg"></div>
+</div>
+
+<!-- 5. ЛК -->
+<div class="screen" id="screenLK">
+  <div class="lk-header">
+    <div class="lk-user">
+      <div class="avatar" id="lkAvatar">?</div>
+      <div style="min-width:0">
+        <div class="lk-name" id="lkName">—</div>
+        <div class="lk-phone" id="lkPhone">—</div>
+      </div>
+    </div>
+    <div class="lk-actions-row">
+      <button class="icon-btn" id="notifBtn" title="Уведомления">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <button class="icon-btn" id="supportBtn" title="Поддержка">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="icon-btn" id="logoutBtn" title="Выйти">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="verificationBanner"></div>
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+    <input id="globalSearch" placeholder="Поиск по операциям, счетам, зарплатному счёту">
+  </div>
+  <div class="account-switcher" id="accountSwitcher"></div>
+  <div class="balance-card">
+    <div class="balance-label">Доступно</div>
+    <div class="balance-value" id="balanceValue">0 <span>₽</span></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card" id="statIn">
+      <div class="stat-label">Доходы</div>
+      <div class="stat-value in" id="statInValue">0 ₽</div>
+    </div>
+    <div class="stat-card" id="statOut">
+      <div class="stat-label">Траты</div>
+      <div class="stat-value out" id="statOutValue">0 ₽</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="action" id="topupBtn"><span class="action-icon">＋</span>Пополнить</button>
+    <button class="action" id="qrBtn" disabled><span class="action-icon">▣</span>QR<span class="soon">Скоро</span></button>
+    <button class="action" id="transferBtn"><span class="action-icon">↗</span>Перевести</button>
+    <button class="action" id="salaryBtn"><span class="action-icon">₽</span>Зарплатный</button>
+  </div>
+  <div class="section-title">История операций</div>
+  <div class="history-list" id="historyList"><div class="empty">Пока нет операций</div></div>
+</div>
+
+<!-- 6. УВЕДОМЛЕНИЯ -->
+<div class="screen" id="screenNotifs">
+  <button class="back-btn" id="notifBack">← Назад</button>
+  <h1 class="screen-title">Уведомления</h1>
+  <div id="notifList"></div>
+</div>
+
+<!-- 7. ЧАТ -->
+<div class="screen" id="screenChat">
+  <button class="back-btn" id="chatBack">← Назад</button>
+  <h1 class="screen-title">Поддержка</h1>
+  <div class="chat-wrap">
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input id="chatInput" placeholder="Сообщение..." maxlength="500">
+      <button class="btn btn-primary" id="chatSend">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- 8. ПОПОЛНЕНИЕ -->
+<div class="screen" id="screenTopup">
+  <button class="back-btn" id="topupBack">← Назад</button>
+  <h1 class="screen-title">Пополнение</h1>
+  <p class="screen-sub">Выберите способ.</p>
+  <button class="list-item soon" disabled><div class="li-icon">📱</div><div class="li-body"><div class="li-title">По номеру телефона из другого банка</div><div class="li-sub">Скоро</div></div></button>
+  <button class="list-item soon" disabled><div class="li-icon">🏦</div><div class="li-body"><div class="li-title">Со своего счёта в другом банке</div><div class="li-sub">Скоро</div></div></button>
+  <button class="list-item soon" disabled><div class="li-icon">💳</div><div class="li-body"><div class="li-title">С карты другого банка</div><div class="li-sub">Скоро</div></div></button>
+  <button class="list-item soon" disabled><div class="li-icon">📄</div><div class="li-body"><div class="li-title">По реквизитам</div><div class="li-sub">Скоро</div></div></button>
+</div>
+
+<!-- 9. РЕКВИЗИТЫ -->
+<div class="screen" id="screenReq">
+  <button class="back-btn" id="reqBack">← Назад</button>
+  <h1 class="screen-title" id="reqTitle">Реквизиты</h1>
+  <div id="reqBody"></div>
+</div>
+
+<!-- 10. НАСТРОЙКИ -->
+<div class="screen" id="screenSettings">
+  <button class="back-btn" id="settingsBack">← Назад</button>
+  <h1 class="screen-title">Настройки</h1>
+  <div class="section-title">Профиль</div>
+  <button class="list-item" id="sProfileBtn"><div class="li-icon">👤</div><div class="li-body"><div class="li-title">Личные данные</div><div class="li-sub" id="sProfileName">—</div></div><div class="li-arrow">›</div></button>
+  <button class="list-item" id="sReqBtn"><div class="li-icon">📄</div><div class="li-body"><div class="li-title">Реквизиты счёта</div><div class="li-sub">БИК, счёт, карта</div></div><div class="li-arrow">›</div></button>
+  <button class="list-item soon" disabled><div class="li-icon">💼</div><div class="li-body"><div class="li-title">Тарифы</div><div class="li-sub">Скоро</div></div></button>
+  <div class="section-title" style="margin-top:14px">Счёт</div>
+  <button class="list-item" id="sCloseBtn"><div class="li-icon">🔒</div><div class="li-body"><div class="li-title" style="color:var(--danger)">Закрыть счёт</div><div class="li-sub">Комиссия 20%</div></div><div class="li-arrow">›</div></button>
+  <button class="list-item" id="sRecreateBtn" style="display:none"><div class="li-icon">↻</div><div class="li-body"><div class="li-title" style="color:var(--success)">Пересоздать счёт</div><div class="li-sub">Требуется KYC</div></div><div class="li-arrow">›</div></button>
+  <div class="msg" id="settingsMsg"></div>
+</div>
+
+<!-- 11. ЗАКРЫТИЕ / ПЕРЕСОЗДАНИЕ -->
+<div class="screen" id="screenClose">
+  <button class="back-btn" id="closeBack">← Назад</button>
+  <h1 class="screen-title" id="closeTitle">Закрытие счёта</h1>
+  <p class="screen-sub" id="closeSub">Заявка уйдёт в поддержку. Комиссия 20% в пользу банка.</p>
+  <div id="closeFields">
+    <div class="field"><label class="field-label">Счёт для вывода</label><input class="input-text" id="clAcc"></div>
+    <div class="field"><label class="field-label">БИК</label><input class="input-text" id="clBik"></div>
+    <div class="field"><label class="field-label">Банк</label><input class="input-text" id="clBank"></div>
+    <div class="field"><label class="field-label">ИНН / КПП</label><input class="input-text" id="clInn"></div>
+    <div class="field"><label class="field-label">Комментарий</label><input class="input-text" id="clNote"></div>
+  </div>
+  <div id="recreateFields" style="display:none">
+    <div class="field"><label class="field-label">Фамилия</label><input class="input-text" id="rcSur"></div>
+    <div class="field"><label class="field-label">Имя</label><input class="input-text" id="rcNm"></div>
+    <div class="field"><label class="field-label">Отчество</label><input class="input-text" id="rcPat"></div>
+    <div class="field"><label class="field-label">Дата рождения</label><input class="input-text" id="rcDob" type="date"></div>
+    <div class="field"><label class="field-label">Кодовое слово</label><input class="input-text" id="rcCw"></div>
+  </div>
+  <div class="req-card" id="closeCalc"></div>
+  <button class="btn btn-primary" id="clSubmit">Отправить</button>
+  <div class="msg" id="closeMsg"></div>
+</div>
+
+<!-- 12. ПЕРЕВОД -->
+<div class="screen" id="screenTransfer">
+  <button class="back-btn" id="transferBack">← Назад</button>
+  <h1 class="screen-title">Перевод</h1>
+  <p class="screen-sub">Клиенту QwertyBank по номеру телефона. Каждый перевод проходит антифрод-проверку.</p>
+  <div class="field"><label class="field-label">Телефон получателя</label>
+    <div class="phone-row"><span class="prefix">+7</span>
+      <input type="tel" id="trPhone" maxlength="14" inputmode="numeric">
+    </div>
+  </div>
+  <div class="field"><label class="field-label">Сумма</label>
+    <input class="input-text" id="trAmount" inputmode="numeric" style="font-size:22px;font-weight:700;text-align:center">
+  </div>
+  <div class="field"><label class="field-label">Комментарий</label>
+    <input class="input-text" id="trComment" maxlength="120" placeholder="Например: за обед">
+  </div>
+  <button class="btn btn-primary" id="trSendBtn">Перевести</button>
+  <div class="msg" id="trMsg"></div>
+</div>
+
+<!-- 13. МЕЖДУ СЧЕТАМИ -->
+<div class="screen" id="screenBetween">
+  <button class="back-btn" id="betweenBack">← Назад</button>
+  <h1 class="screen-title">Между счетами</h1>
+  <p class="screen-sub">Без комиссии.</p>
+  <div class="field"><label class="field-label">Откуда</label><select class="input-text" id="btFrom"></select></div>
+  <div class="field"><label class="field-label">Куда</label><select class="input-text" id="btTo"></select></div>
+  <div class="field"><label class="field-label">Сумма</label><input class="input-text" id="btAmount" inputmode="numeric" style="font-size:22px;font-weight:700;text-align:center"></div>
+  <button class="btn btn-primary" id="btSend">Перевести</button>
+  <div class="msg" id="btMsg"></div>
+</div>
+
+<!-- 14. ДЕТАЛИ ОПЕРАЦИИ -->
+<div class="screen" id="screenTxDetail">
+  <button class="back-btn" id="txBack">← Назад</button>
+  <h1 class="screen-title">Операция</h1>
+  <div id="txBody"></div>
+</div>
+
+<!-- 15. ИСТОРИЯ (фильтр) -->
+<div class="screen" id="screenHistory">
+  <button class="back-btn" id="historyBack">← Назад</button>
+  <h1 class="screen-title" id="historyTitle">История</h1>
+  <div class="hist-search">
+    <input id="histSearch" placeholder="Поиск по номеру, комментарию, телефону">
+  </div>
+  <div class="history-list" id="histList"><div class="empty">Нет операций</div></div>
+</div>
+
+<!-- 16. УСПЕХ -->
+<div class="screen" id="screenSuccess">
+  <div style="text-align:center;padding:20px 0 10px">
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--success-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:30px;color:var(--success)">✓</div>
+    <div style="font-size:19px;font-weight:700;margin-bottom:4px" id="sucTitle">Готово</div>
+    <div style="font-size:13px;color:var(--text-3);margin-bottom:16px" id="sucSub">Операция выполнена</div>
+  </div>
+  <div id="sucReceipt"></div>
+  <button class="btn btn-primary" id="sucDone">Готово</button>
+</div>
+
+<!-- 17. ДОКУМЕНТ -->
+<div class="screen" id="screenDoc">
+  <button class="back-btn" id="docBack">← Назад</button>
+  <h1 class="screen-title" id="docTitle">Документ</h1>
+  <div id="docBody" style="font-size:13px;line-height:1.65"></div>
+</div>
+
+<footer class="legal-footer">
+  <div class="legal-links">
+    <button class="legal-link" data-doc="privacy">Политика конфиденциальности</button>
+    <button class="legal-link" data-doc="terms">Условия</button>
+    <button class="legal-link" data-doc="kyc">KYC-верификация</button>
+    <button class="legal-link" data-doc="amla">115-ФЗ</button>
+    <button class="legal-link" data-doc="close">Закрытие счёта</button>
+    <button class="legal-link" data-doc="contacts">Реквизиты</button>
+  </div>
+  <div class="legal-meta">Генеральная лицензия Банка России № 0000 · ООО «QwertyBank»</div>
+  <div class="legal-copy">© 2024–2026 QwertyBank. Все права защищены.</div>
+</footer>
+
+</div>
+
+<!-- ДИАЛОГ -->
+<div class="dialog-overlay" id="dlgOverlay">
+  <div class="dialog">
+    <div class="dialog-title" id="dlgTitle">—</div>
+    <div class="dialog-sub" id="dlgSub"></div>
+    <div id="dlgBody"></div>
+    <div class="dialog-actions">
+      <button class="btn btn-secondary" id="dlgCancel">Отмена</button>
+      <button class="btn btn-primary" id="dlgOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   QwertyBank — клиент. Вся логика через API.
+   ============================================================ */
+(function(){
+'use strict';
+
+const API = '/api';
+const TOKEN_KEY = 'qwb_token';
+
+let state = {
+  token: localStorage.getItem(TOKEN_KEY) || null,
+  phone: null,
+  user: null,
+  accounts: [],
+  notifications: [],
+  activeAccountId: null,
+  allTransactions: [],
+  pendingReg: null,
+  pinStage1: '',
+  pinCurrent: '',
+  pinMode: 'create',
+  settingsTheme: localStorage.getItem('qwb_theme') || 'light'
+};
+
+function $(id){ return document.getElementById(id) }
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = $(name);
+  if (el) el.classList.add('active');
+}
+function showMsg(el, text, type){
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg show ' + (type || 'info');
+}
+function hideMsg(el){ if (el){ el.textContent=''; el.className='msg'; } }
+function fmtMoney(n){ try { return Number(n||0).toLocaleString('ru-RU'); } catch(e){ return String(n||0); } }
+function fmtPhone(d){
+  if (!d) return '';
+  d = String(d).slice(0,10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return d.slice(0,3)+' '+d.slice(3);
+  if (d.length <= 8) return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6);
+  return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6,8)+' '+d.slice(8);
+}
+function normPhone(v){
+  let d = String(v||'').replace(/\D/g,'');
+  if (d.length === 11 && (d[0]==='7'||d[0]==='8')) d = d.slice(1);
+  return d.slice(0,10);
+}
+function dateShort(iso){
+  try {
+    const d = new Date(iso);
+    const m = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    return d.getDate()+' '+m[d.getMonth()]+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  } catch(e){ return iso }
+}
+function dateFull(iso){
+  try {
+    const d = new Date(iso);
+    const m = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear()+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  } catch(e){ return iso }
+}
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+/* ---------- API helper ---------- */
+async function api(path, opts){
+  opts = opts || {};
+  const headers = { 'Content-Type': 'application/json' };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const res = await fetch(API + path, {
+    method: opts.method || 'GET',
+    headers,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  let data = null;
+  try { data = await res.json(); } catch(e){}
+  if (!res.ok){
+    const err = new Error((data && data.error) || ('HTTP '+res.status));
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+/* ---------- Тема ---------- */
+function applyTheme(){
+  if (state.settingsTheme === 'dark') document.body.classList.add('theme-dark');
+  else document.body.classList.remove('theme-dark');
+}
+
+/* ---------- Регистрация: email ---------- */
+async function sendEmailCode(){
+  try {
+    hideMsg($('regMsg'));
+    const phone = normPhone(state.phone);
+    const email = $('emInput').value.trim();
+    if (!email) return showMsg($('regMsg'), 'Укажите email', 'error');
+
+    const body = {
+      phone,
+      surname: $('surInput').value.trim(),
+      name: $('nmInput').value.trim(),
+      patronymic: $('patInput').value.trim(),
+      dob: $('dobInput').value,
+      codeword: $('cwInput').value.trim(),
+      email
+    };
+    if (!body.surname || !body.name) return showMsg($('regMsg'), 'Укажите ФИО', 'error');
+    if (!body.dob) return showMsg($('regMsg'), 'Укажите дату рождения', 'error');
+    if (!body.codeword) return showMsg($('regMsg'), 'Укажите кодовое слово', 'error');
+
+    const r = await api('/register', { method:'POST', body });
+    state.pendingReg = { phone, email };
+    $('emCodeField').style.display = '';
+    $('emVerifyBtn').style.display = '';
+    $('emSendBtn').style.display = 'none';
+    showMsg($('regMsg'), 'Код отправлен на email. Демо-код: ' + (r.demoCode || '—'), 'info');
+  } catch(e){
+    showMsg($('regMsg'), e.message, 'error');
+  }
+}
+
+async function verifyEmail(){
+  try {
+    hideMsg($('regMsg'));
+    const code = $('emCodeInput').value.trim();
+    const phone = state.pendingReg.phone;
+    await api('/verify-email', { method:'POST', body:{ phone, code } });
+
+    // Теперь создаём PIN
+    state.pinMode = 'create';
+    state.pinStage1 = '';
+    state.pinCurrent = '';
+    renderPinDots($('pinCreateDots'), 0);
+    showScreen('pinCreate');
+  } catch(e){
+    showMsg($('regMsg'), e.message, 'error');
+  }
+}
+
+/* ---------- PIN ---------- */
+function renderPinDots(el, n, err){
+  if (!el) return;
+  const dots = el.querySelectorAll('.pin-dot');
+  dots.forEach((d,i) => {
+    d.classList.toggle('filled', i < n);
+    if (err) d.classList.add('error'); else d.classList.remove('error');
+  });
+}
+function bindPinPad(pad, mode){
+  pad.querySelectorAll('.pin-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = btn.getAttribute('data-d');
+      const a = btn.getAttribute('data-a');
+      if (d) pinInput(mode, d);
+      else if (a === 'back') pinBack(mode);
+    });
+  });
+}
+function pinInput(mode, d){
+  if (state.pinCurrent.length >= 4) return;
+  state.pinCurrent += d;
+  renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length);
+  if (state.pinCurrent.length === 4) setTimeout(() => pinComplete(mode), 130);
+}
+function pinBack(mode){
+  if (!state.pinCurrent.length) return;
+  state.pinCurrent = state.pinCurrent.slice(0,-1);
+  renderPinDots(mode === 'create' ? $('pinCreateDots') : $('pinLoginDots'), state.pinCurrent.length);
+}
+async function pinComplete(mode){
+  if (mode === 'create'){
+    if (state.pinMode === 'create' && !state.pinStage1){
+      state.pinStage1 = state.pinCurrent;
+      state.pinCurrent = '';
+      renderPinDots($('pinCreateDots'), 0);
+      // Сразу подтверждение — переиспользуем тот же экран, но просим повторить
+      showMsg($('pinCreateMsg'), 'Повторите PIN', 'info');
+      state.pinMode = 'confirm';
+      return;
+    }
+    if (state.pinMode === 'confirm'){
+      if (state.pinCurrent !== state.pinStage1){
+        showMsg($('pinCreateMsg'), 'PIN не совпадает', 'error');
+        state.pinStage1 = '';
+        state.pinCurrent = '';
+        state.pinMode = 'create';
+        renderPinDots($('pinCreateDots'), 0);
+        return;
+      }
+      try {
+        const phone = state.pendingReg.phone;
+        const r = await api('/set-pin', { method:'POST', body:{ phone, pin: state.pinStage1 } });
+        state.token = r.token;
+        localStorage.setItem(TOKEN_KEY, r.token);
+        state.pendingReg = null;
+        state.pinStage1 = '';
+        state.pinCurrent = '';
+        await loadMe();
+      } catch(e){
+        showMsg($('pinCreateMsg'), e.message, 'error');
+      }
+    }
+    return;
+  }
+  if (mode === 'login'){
+    try {
+      const r = await api('/login', { method:'POST', body:{ phone: state.phone, pin: state.pinCurrent } });
+      state.token = r.token;
+      localStorage.setItem(TOKEN_KEY, r.token);
+      state.pinCurrent = '';
+      await loadMe();
+    } catch(e){
+      renderPinDots($('pinLoginDots'), 4, true);
+      showMsg($('pinLoginMsg'), e.message, 'error');
+      setTimeout(() => {
+        state.pinCurrent = '';
+        renderPinDots($('pinLoginDots'), 0);
+      }, 800);
+    }
+  }
+}
+
+/* ---------- Загрузка пользователя ---------- */
+async function loadMe(){
+  const data = await api('/me');
+  state.user = data.user;
+  state.accounts = data.accounts;
+  state.notifications = data.notifications;
+  state.activeAccountId = state.activeAccountId || (state.accounts[0] && state.accounts[0].id);
+  const txs = await api('/transactions');
+  state.allTransactions = txs.transactions || [];
+  renderLK();
+  showScreen('lk');
+}
+
+function currentAccount(){
+  return state.accounts.find(a => String(a.id) === String(state.activeAccountId)) || state.accounts[0];
+}
+
+/* ---------- ЛК ---------- */
+function renderLK(){
+  const u = state.user;
+  $('lkAvatar').textContent = ((u.surname||'?')[0] + (u.name||'')[0]).toUpperCase();
+  $('lkName').textContent = [u.surname, u.name, u.patronymic].filter(Boolean).join(' ');
+  $('lkPhone').textContent = '+7 ' + fmtPhone(u.phone);
+
+  const vb = $('verificationBanner');
+  if (u.status === 'blocked'){
+    vb.innerHTML = '<div class="verification-banner"><strong>Счёт заблокирован</strong>' +
+      escapeHtml(u.blockedReason || 'Обратитесь в поддержку для разблокировки.') + '</div>';
+  } else if (u.status === 'close_pending'){
+    vb.innerHTML = '<div class="verification-banner"><strong>Заявка на закрытие счёта</strong>Ожидайте решения поддержки.</div>';
+  } else if (u.status === 'closed'){
+    vb.innerHTML = '<div class="verification-banner"><strong>Счёт закрыт</strong>Пересоздайте счёт в Настройках.</div>';
+  } else {
+    vb.innerHTML = '';
+  }
+
+  const acc = currentAccount();
+  if (acc){
+    $('balanceValue').innerHTML = fmtMoney(acc.balance) + ' <span>₽</span>';
+  } else {
+    $('balanceValue').innerHTML = '0 <span>₽</span>';
+  }
+
+  // Статистика
+  let totalIn = 0, totalOut = 0;
+  state.allTransactions.forEach(t => {
+    if (t.to_phone === u.phone && t.status === 'completed') totalIn += Number(t.amount);
+    if (t.from_phone === u.phone && t.status === 'completed') totalOut += Number(t.amount);
+  });
+  $('statInValue').textContent = fmtMoney(totalIn) + ' ₽';
+  $('statOutValue').textContent = fmtMoney(totalOut) + ' ₽';
+
+  // Переключатель счетов
+  const sw = $('accountSwitcher');
+  sw.innerHTML = state.accounts.map(a => {
+    const isActive = String(a.id) === String(state.activeAccountId);
+    return '<button class="account-chip ' + (isActive?'active':'') + '" data-accid="'+a.id+'">' +
+      (a.type === 'salary' ? 'Зарплатный' : 'Основной') +
+      '<span class="sub">' + fmtMoney(a.balance) + ' ₽</span></button>';
+  }).join('');
+  sw.querySelectorAll('.account-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeAccountId = btn.getAttribute('data-accid');
+      renderLK();
+    });
+  });
+
+  // Бейдж
+  const unread = state.notifications.filter(n => !n.read).length;
+  const badge = $('notifBadge');
+  if (unread > 0){ badge.style.display = ''; badge.textContent = unread > 9 ? '9+' : String(unread); }
+  else badge.style.display = 'none';
+
+  // Блокировка кнопок
+  const blocked = ['blocked','closed','close_pending'].includes(u.status);
+  $('transferBtn').disabled = blocked;
+  $('topupBtn').disabled = blocked;
+
+  // Пересоздание счёта в настройках
+  $('sRecreateBtn').style.display = u.status === 'closed' ? '' : 'none';
+
+  // История
+  renderTxList($('historyList'), state.allTransactions.slice(0, 20));
+}
+
+function renderTxList(container, txs){
+  if (!container) return;
+  if (!txs.length){ container.innerHTML = '<div class="empty">Пока нет операций</div>'; return; }
+  container.innerHTML = txs.map(t => {
+    const isIn = t.to_phone === state.user.phone;
+    const icon = isIn ? '↙' : '↗';
+    let cls = isIn ? 'plus' : '';
+    if (t.status === 'frozen' || t.status === 'pending'){ cls = 'frozen'; }
+    const amount = (isIn ? '+' : '−') + fmtMoney(t.amount) + ' ₽';
+    return '<div class="tx" data-txid="'+t.id+'">' +
+      '<div class="tx-left">' +
+        '<div class="tx-icon">'+icon+'</div>' +
+        '<div style="min-width:0">' +
+          '<div class="tx-name">'+escapeHtml(t.comment || (isIn?'Входящий':'Исходящий'))+'</div>' +
+          '<div class="tx-meta">'+dateShort(t.created_at)+' · '+escapeHtml(t.tx_number)+'</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tx-amount '+cls+'">'+amount+'</div>' +
+    '</div>';
+  }).join('');
+  container.querySelectorAll('.tx').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-txid');
+      openTxDetail(id);
+    });
+  });
+}
+
+/* ---------- Детали операции ---------- */
+function openTxDetail(txId){
+  const t = state.allTransactions.find(x => String(x.id) === String(txId));
+  if (!t) return;
+  const isIn = t.to_phone === state.user.phone;
+  const rows = [
+    ['Номер операции', t.tx_number],
+    ['Статус', statusRu(t.status)],
+    ['Сумма', (isIn?'+':'−') + fmtMoney(t.amount) + ' ₽'],
+    ['Отправитель', t.from_phone ? '+7 ' + fmtPhone(t.from_phone) : '—'],
+    ['Получатель', t.to_phone ? '+7 ' + fmtPhone(t.to_phone) : '—'],
+    ['Комментарий', t.comment || '—'],
+    ['Дата', dateFull(t.created_at)]
+  ];
+  $('txBody').innerHTML = rows.map(([l,v]) =>
+    '<div class="tx-detail-row"><div class="lbl">'+escapeHtml(l)+'</div><div class="val">'+escapeHtml(v)+'</div></div>'
+  ).join('');
+  showScreen('txDetail');
+}
+
+function statusRu(s){
+  return ({completed:'Выполнена', pending:'На проверке', frozen:'Приостановлена', returned:'Возвращена', blocked:'Заблокирована', rejected:'Отклонена'})[s] || s;
+}
+
+/* ---------- Уведомления ---------- */
+async function openNotifications(){
+  const data = await api('/notifications');
+  state.notifications = data.notifications;
+  renderNotifs();
+  showScreen('notifs');
+}
+function renderNotifs(){
+  const box = $('notifList');
+  if (!state.notifications.length){ box.innerHTML = '<div class="empty">Нет уведомлений</div>'; return; }
+  box.innerHTML = state.notifications.map(n => {
+    let icon = '📩';
+    if (n.type === 'blocked') icon = '🚫';
+    if (n.type === 'transfer_in') icon = '↙';
+    if (n.type === 'transfer_out') icon = '↗';
+    if (n.type === 'tx_pending') icon = '⏸';
+    if (n.type === 'chat') icon = '💬';
+    if (n.type === 'close') icon = '🔒';
+    return '<button class="notif '+(n.read?'':'unread')+'" data-nid="'+n.id+'">' +
+      '<div class="n-icon">'+icon+'</div>' +
+      '<div class="n-body">' +
+        '<div class="n-title">'+escapeHtml(n.title)+'</div>' +
+        '<div class="n-text">'+escapeHtml(n.text)+'</div>' +
+        '<div class="n-date">'+dateShort(n.created_at)+'</div>' +
+      '</div>' +
+      (n.read?'':'<div class="n-dot"></div>') +
+    '</button>';
+  }).join('');
+  box.querySelectorAll('.notif').forEach(el => {
+    el.addEventListener('click', async () => {
+      const nid = el.getAttribute('data-nid');
+      await api('/notifications', { method:'POST', body:{ id: nid } });
+      const n = state.notifications.find(x => String(x.id) === String(nid));
+      if (n) n.read = true;
+      renderNotifs();
+      renderLK();
+    });
+  });
+}
+
+/* ---------- Чат ---------- */
+async function openChat(){
+  const data = await api('/support');
+  renderChat(data.messages || []);
+  showScreen('chat');
+}
+function renderChat(msgs){
+  const box = $('chatMessages');
+  if (!msgs.length){ box.innerHTML = '<div class="chat-msg system">Напишите сообщение — поддержка ответит.</div>'; return; }
+  box.innerHTML = msgs.map(m => {
+    const cls = m.from_who === 'user' ? 'user' : 'support';
+    return '<div class="chat-msg '+cls+'">'+escapeHtml(m.text)+
+      '<span class="cm-time">'+dateShort(m.created_at)+'</span></div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+async function sendChat(){
+  const text = $('chatInput').value.trim();
+  if (!text) return;
+  try {
+    await api('/support', { method:'POST', body:{ text } });
+    $('chatInput').value = '';
+    await openChat();
+  } catch(e){ alert(e.message); }
+}
+
+/* ---------- Перевод ---------- */
+async function doTransfer(){
+  try {
+    hideMsg($('trMsg'));
+    const toPhone = normPhone($('trPhone').value);
+    const amount = Number(String($('trAmount').value).replace(/\D/g,''));
+    const comment = $('trComment').value.trim();
+
+    if (toPhone.length !== 10) return showMsg($('trMsg'), 'Введите 10 цифр телефона', 'error');
+    if (!amount || amount <= 0) return showMsg($('trMsg'), 'Введите сумму', 'error');
+
+    const r = await api('/transfer', {
+      method:'POST',
+      body: { toPhone, amount, comment, fromAccountId: state.activeAccountId }
+    });
+
+    if (r.blocked){
+      // Блокировка — показать причину
+      $('sucTitle').textContent = 'Перевод заблокирован';
+      $('sucSub').textContent = 'Антифрод-проверка отклонила операцию';
+      $('sucReceipt').innerHTML = '<div class="req-card">' +
+        '<div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div>' +
+        '<div class="req-row"><span class="req-label">Причины</span><span class="req-val">'+escapeHtml(r.reasons.join('; '))+'</span></div>' +
+      '</div>';
+      showScreen('success');
+      // перезагрузим состояние
+      await loadMe();
+      return;
+    }
+
+    $('sucTitle').textContent = 'Перевод выполнен';
+    $('sucSub').textContent = 'Деньги отправлены получателю';
+    $('sucReceipt').innerHTML = '<div class="req-card">' +
+      '<div class="req-row"><span class="req-label">Операция</span><span class="req-val">'+escapeHtml(r.txNumber)+'</span></div>' +
+      '<div class="req-row"><span class="req-label">Сумма</span><span class="req-val">'+fmtMoney(amount)+' ₽</span></div>' +
+      '<div class="req-row"><span class="req-label">Получатель</span><span class="req-val">+7 '+fmtPhone(toPhone)+'</span></div>' +
+    '</div>';
+    showScreen('success');
+    await loadMe();
+  } catch(e){
+    showMsg($('trMsg'), e.message, 'error');
+  }
+}
+
+/* ---------- Между счетами ---------- */
+async function openBetween(){
+  if (state.accounts.length < 2){ alert('Создайте зарплатный счёт для переводов между счетами'); return; }
+  const from = $('btFrom'), to = $('btTo');
+  from.innerHTML = state.accounts.map(a => '<option value="'+a.id+'">'+(a.type==='salary'?'Зарплатный':'Основной')+' — '+fmtMoney(a.balance)+' ₽</option>').join('');
+  to.innerHTML = state.accounts.map(a => '<option value="'+a.id+'">'+(a.type==='salary'?'Зарплатный':'Основной')+'</option>').join('');
+  from.value = state.accounts[0].id;
+  to.value = state.accounts[1].id;
+  $('btAmount').value = '';
+  hideMsg($('btMsg'));
+  showScreen('between');
+}
+async function doBetween(){
+  try {
+    hideMsg($('btMsg'));
+    const amount = Number(String($('btAmount').value).replace(/\D/g,''));
+    if (!amount || amount <= 0) return showMsg($('btMsg'), 'Введите сумму', 'error');
+    await api('/accounts', { method:'POST', body:{
+      action:'transfer-between',
+      fromId: $('btFrom').value,
+      toId: $('btTo').value,
+      amount
+    }});
+    await loadMe();
+    $('sucTitle').textContent = 'Перевод между счетами';
+    $('sucSub').textContent = 'Без комиссии';
+    $('sucReceipt').innerHTML = '';
+    showScreen('success');
+  } catch(e){
+    showMsg($('btMsg'), e.message, 'error');
+  }
+}
+
+/* ---------- Зарплатный счёт ---------- */
+async function createSalary(){
+  try {
+    await api('/accounts', { method:'POST', body:{ action:'create-salary' } });
+    await loadMe();
+    alert('Зарплатный счёт открыт. Реквизиты в Настройках → Реквизиты.');
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+/* ---------- Реквизиты ---------- */
+function openReq(){
+  const acc = currentAccount();
+  if (!acc) return;
+  $('reqTitle').textContent = acc.type === 'salary' ? 'Зарплатный счёт' : 'Основной счёт';
+  $('reqBody').innerHTML = '<div class="req-card">' +
+    '<div class="req-row"><span class="req-label">Владелец</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name].filter(Boolean).join(' '))+'</span></div>' +
+    '<div class="req-row"><span class="req-label">Р/с</span><span class="req-val">'+escapeHtml(acc.account_number)+'</span></div>' +
+    '<div class="req-row"><span class="req-label">Карта</span><span class="req-val">'+escapeHtml(acc.card_number || '—')+'</span></div>' +
+    '<div class="req-row"><span class="req-label">БИК</span><span class="req-val">044525000</span></div>' +
+    '<div class="req-row"><span class="req-label">Корр. счёт</span><span class="req-val">30101810000000000000</span></div>' +
+    '<div class="req-row"><span class="req-label">Банк</span><span class="req-val">ООО «QwertyBank»</span></div>' +
+  '</div>';
+  showScreen('req');
+}
+
+/* ---------- Закрытие / пересоздание ---------- */
+function openClose(){
+  if (state.user.status === 'blocked'){ alert('Счёт заблокирован. Обратитесь в поддержку.'); return; }
+  if (state.user.status === 'close_pending'){ alert('Заявка уже отправлена'); return; }
+  if (state.user.status === 'closed'){
+    // пересоздание
+    $('closeTitle').textContent = 'Пересоздать счёт';
+    $('closeSub').textContent = 'Введите KYC-данные заново. QwertyJob получит уведомление.';
+    $('closeFields').style.display = 'none';
+    $('recreateFields').style.display = '';
+    $('closeCalc').innerHTML = '';
+    $('rcSur').value = ''; $('rcNm').value = ''; $('rcPat').value = '';
+    $('rcDob').value = ''; $('rcCw').value = '';
+    $('clSubmit').textContent = 'Пересоздать';
+    $('clSubmit').setAttribute('data-mode', 'recreate');
+    hideMsg($('closeMsg'));
+    showScreen('close');
+    return;
+  }
+  $('closeTitle').textContent = 'Закрытие счёта';
+  $('closeSub').textContent = 'Заявка уйдёт в поддержку. Комиссия 20% в пользу банка.';
+  $('closeFields').style.display = '';
+  $('recreateFields').style.display = 'none';
+  $('clAcc').value = ''; $('clBik').value = ''; $('clBank').value = ''; $('clInn').value = ''; $('clNote').value = '';
+  const total = state.accounts.reduce((s,a) => s + Number(a.balance), 0);
+  const fee = Math.round(total * 0.2);
+  $('closeCalc').innerHTML =
+    '<div class="req-row"><span class="req-label">Всего на счетах</span><span class="req-val">'+fmtMoney(total)+' ₽</span></div>' +
+    '<div class="req-row"><span class="req-label">Комиссия (20%)</span><span class="req-val">'+fmtMoney(fee)+' ₽</span></div>' +
+    '<div class="req-row"><span class="req-label">К выводу</span><span class="req-val">'+fmtMoney(total-fee)+' ₽</span></div>';
+  $('clSubmit').textContent = 'Отправить заявку';
+  $('clSubmit').setAttribute('data-mode', 'close');
+  hideMsg($('closeMsg'));
+  showScreen('close');
+}
+async function submitClose(){
+  const mode = $('clSubmit').getAttribute('data-mode');
+  try {
+    hideMsg($('closeMsg'));
+    if (mode === 'close'){
+      const body = {
+        action: 'create',
+        req_account: $('clAcc').value.trim(),
+        req_bik: $('clBik').value.trim(),
+        req_bank: $('clBank').value.trim(),
+        req_inn: $('clInn').value.trim(),
+        comment: $('clNote').value.trim()
+      };
+      if (!body.req_account || !body.req_bik || !body.req_bank) return showMsg($('closeMsg'), 'Заполните реквизиты', 'error');
+      await api('/close-request', { method:'POST', body });
+      await loadMe();
+      showMsg($('closeMsg'), 'Заявка отправлена', 'success');
+      setTimeout(() => showScreen('lk'), 700);
+    } else {
+      const body = {
+        action:'recreate',
+        surname: $('rcSur').value.trim(),
+        name: $('rcNm').value.trim(),
+        patronymic: $('rcPat').value.trim(),
+        dob: $('rcDob').value,
+        codeword: $('rcCw').value.trim()
+      };
+      if (!body.surname || !body.name || !body.dob || !body.codeword)
+        return showMsg($('closeMsg'), 'Заполните все поля', 'error');
+      await api('/close-request', { method:'POST', body });
+      await loadMe();
+      showMsg($('closeMsg'), 'Счёт пересоздан', 'success');
+      setTimeout(() => showScreen('lk'), 700);
+    }
+  } catch(e){
+    showMsg($('closeMsg'), e.message, 'error');
+  }
+}
+
+/* ---------- Поиск ---------- */
+async function searchTransactions(q){
+  try {
+    const data = await api('/transactions?search=' + encodeURIComponent(q));
+    return data.transactions;
+  } catch(e){ return []; }
+}
+
+/* ---------- Документы ---------- */
+const DOCS = {
+  privacy: { title:'Политика конфиденциальности', html:'<h3>1. Общие положения</h3><p>Политика определяет порядок обработки персональных данных пользователей QwertyBank в соответствии с ФЗ № 152-ФЗ. Используя сервис, вы соглашаетесь с условиями.</p><h3>2. Данные</h3><ul><li>ФИО, телефон, email, дата рождения;</li><li>данные о счетах, картах, операциях;</li><li>технические данные.</li></ul><h3>3. Цели</h3><p>Идентификация, проведение платежей, антифрод, исполнение 115-ФЗ.</p><h3>4. Права</h3><p>Доступ, исправление, удаление — через поддержку.</p>' },
+  terms: { title:'Условия обслуживания', html:'<h3>1. Предмет</h3><p>Банк открывает клиенту текущий счёт в рублях РФ и предоставляет доступ к дистанционному обслуживанию.</p><h3>2. Регистрация</h3><p>Клиент предоставляет ФИО, телефон, email, дату рождения и кодовое слово. Данные фиксируются и не могут быть изменены без поддержки.</p><h3>3. Операции</h3><p>Все переводы проходят антифрод-проверку. При подозрении операция блокируется, средства остаются у отправителя.</p><h3>4. Блокировка</h3><p>После 3 заблокированных переводов счёт блокируется, требуется обращение в поддержку.</p>' },
+  kyc: { title:'KYC-верификация', html:'<h3>1. Когда банк запрашивает KYC</h3><p>Если банк замечает подозрительное поведение в личном кабинете — нетипичные устройства, частые смены реквизитов, многократные неудачные входы, крупные переводы новым получателям — запрашивается KYC-верификация: повторное подтверждение личности и кодового слова через поддержку.</p><h3>2. Порядок</h3><p>Пользователь получает уведомление и баннер в ЛК. Для продолжения операций нужно связаться с поддержкой в чате и подтвердить данные.</p><h3>3. Верификация в QwertyJob</h3><p>Сотрудник поддержки проверяет данные и принимает решение: подтвердить личность, ограничить или разблокировать счёт.</p>' },
+  amla: { title:'115-ФЗ: противодействие отмыванию', html:'<h3>Обязанности банка</h3><ul><li>идентификация клиентов;</li><li>мониторинг операций;</li><li>приостановление сомнительных операций;</li><li>направление сведений в Росфинмониторинг.</li></ul><h3>Последствия</h3><p>При выявлении сомнительных операций банк вправе заблокировать счёт и потребовать верификацию.</p>' },
+  close: { title:'Правила закрытия счёта', html:'<h3>1. Порядок</h3><p>Клиент подаёт заявку через настройки. Заявка уходит в поддержку QwertyJob.</p><h3>2. Комиссия</h3><p>При закрытии удерживается <strong>20%</strong> от общего остатка в пользу банка.</p><h3>3. Реквизиты</h3><p>Клиент указывает счёт, БИК, банк и ИНН/КПП для вывода остатка.</p><h3>4. Пересоздание</h3><p>После закрытия можно пересоздать счёт с новым KYC и уведомлением QwertyJob.</p>' },
+  contacts: { title:'Реквизиты и контакты', html:'<h3>Юридические реквизиты</h3><p><strong>ООО «QwertyBank»</strong><br>ИНН: 0000000000<br>ОГРН: 0000000000000</p><h3>Контакты</h3><p>Телефон: 8 800 000-00-00<br>Email: support@qwertybank.ru</p>' }
+};
+
+/* ---------- Инициализация ---------- */
+function init(){
+  applyTheme();
+
+  // Вход
+  $('phoneInput').addEventListener('input', e => {
+    e.target.value = fmtPhone(normPhone(e.target.value));
+  });
+  $('continueBtn').addEventListener('click', async () => {
+    try {
+      hideMsg($('phoneMsg'));
+      const phone = normPhone($('phoneInput').value);
+      if (phone.length !== 10) return showMsg($('phoneMsg'), 'Введите 10 цифр', 'error');
+      const r = await api('/login', { method:'POST', body:{ phone } });
+      state.phone = phone;
+      if (r.exists){
+        // Открыть PIN-ввод
+        state.pinCurrent = '';
+        renderPinDots($('pinLoginDots'), 0);
+        $('pinLoginSub').textContent = '+7 ' + fmtPhone(phone);
+        hideMsg($('pinLoginMsg'));
+        showScreen('pinLogin');
+      }
+    } catch(e){
+      if (e.data && e.data.error === 'Номер не зарегистрирован'){
+        // Начать регистрацию
+        state.phone = normPhone($('phoneInput').value);
+        $('surInput').value = ''; $('nmInput').value = '';
+        $('patInput').value = ''; $('dobInput').value = '';
+        $('cwInput').value = ''; $('emInput').value = '';
+        $('emCodeField').style.display = 'none';
+        $('emVerifyBtn').style.display = 'none';
+        $('emSendBtn').style.display = '';
+        hideMsg($('regMsg'));
+        showScreen('reg');
+      } else {
+        showMsg($('phoneMsg'), e.message, 'error');
+      }
+    }
+  });
+
+  // Регистрация
+  $('emSendBtn').addEventListener('click', sendEmailCode);
+  $('emVerifyBtn').addEventListener('click', verifyEmail);
+  $('regBackBtn').addEventListener('click', () => showScreen('phone'));
+
+  // PIN
+  bindPinPad($('pinCreatePad'), 'create');
+  bindPinPad($('pinLoginPad'), 'login');
+  $('pinCreateBack').addEventListener('click', () => {
+    state.pinCurrent = ''; state.pinStage1 = ''; state.pinMode = 'create';
+    renderPinDots($('pinCreateDots'), 0);
+    showScreen(state.pendingReg ? 'reg' : 'phone');
+  });
+  $('pinLoginCancel').addEventListener('click', () => {
+    state.pinCurrent = '';
+    renderPinDots($('pinLoginDots'), 0);
+    showScreen('phone');
+  });
+
+  // ЛК
+  $('logoutBtn').addEventListener('click', () => {
+    state.token = null;
+    localStorage.removeItem(TOKEN_KEY);
+    state.user = null;
+    $('phoneInput').value = '';
+    showScreen('phone');
+  });
+  $('notifBtn').addEventListener('click', openNotifications);
+  $('notifBack').addEventListener('click', () => showScreen('lk'));
+  $('supportBtn').addEventListener('click', openChat);
+  $('chatBack').addEventListener('click', () => showScreen('lk'));
+  $('chatSend').addEventListener('click', sendChat);
+  $('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+  // Статистика
+  $('statIn').addEventListener('click', () => openHistory('in'));
+  $('statOut').addEventListener('click', () => openHistory('out'));
+
+  // Действия
+  $('topupBtn').addEventListener('click', () => showScreen('topup'));
+  $('topupBack').addEventListener('click', () => showScreen('lk'));
+  $('transferBtn').addEventListener('click', () => {
+    $('trPhone').value = ''; $('trAmount').value = ''; $('trComment').value = '';
+    hideMsg($('trMsg'));
+    showScreen('transfer');
+  });
+  $('transferBack').addEventListener('click', () => showScreen('lk'));
+  $('trPhone').addEventListener('input', e => { e.target.value = fmtPhone(normPhone(e.target.value)); });
+  $('trAmount').addEventListener('input', e => {
+    const d = String(e.target.value).replace(/\D/g,'').slice(0,9);
+    e.target.value = d ? Number(d).toLocaleString('ru-RU') : '';
+  });
+  $('trSendBtn').addEventListener('click', doTransfer);
+
+  $('salaryBtn').addEventListener('click', () => {
+    if (state.accounts.some(a => a.type === 'salary')){
+      // показать реквизиты зарплатного счёта
+      const sal = state.accounts.find(a => a.type === 'salary');
+      state.activeAccountId = sal.id;
+      renderLK();
+      openReq();
+    } else {
+      createSalary();
+    }
+  });
+
+  // Между счетами
+  $('betweenBack').addEventListener('click', () => showScreen('lk'));
+  $('btAmount').addEventListener('input', e => {
+    const d = String(e.target.value).replace(/\D/g,'').slice(0,9);
+    e.target.value = d ? Number(d).toLocaleString('ru-RU') : '';
+  });
+  $('btSend').addEventListener('click', doBetween);
+
+  // Настройки
+  $('settingsBtn').addEventListener('click', () => {
+    $('sProfileName').textContent = [state.user.surname, state.user.name, state.user.patronymic].filter(Boolean).join(' ');
+    $('sRecreateBtn').style.display = state.user.status === 'closed' ? '' : 'none';
+    showScreen('settings');
+  });
+  $('settingsBack').addEventListener('click', () => showScreen('lk'));
+  $('sProfileBtn').addEventListener('click', () => {
+    openDialog({
+      title:'Личные данные',
+      sub:'Данные жёстко привязаны к номеру телефона. Изменение — только через поддержку.',
+      body:'<div class="req-card">' +
+        '<div class="req-row"><span class="req-label">ФИО</span><span class="req-val">'+escapeHtml([state.user.surname,state.user.name,state.user.patronymic].filter(Boolean).join(' '))+'</span></div>' +
+        '<div class="req-row"><span class="req-label">Телефон</span><span class="req-val">+7 '+fmtPhone(state.user.phone)+'</span></div>' +
+        '<div class="req-row"><span class="req-label">Email</span><span class="req-val">'+escapeHtml(state.user.email)+'</span></div>' +
+        '<div class="req-row"><span class="req-label">Дата рождения</span><span class="req-val">'+escapeHtml(state.user.dob || '—')+'</span></div>' +
+      '</div>',
+      hideCancel:true, okText:'Понятно'
+    });
+  });
+  $('sReqBtn').addEventListener('click', openReq);
+  $('sCloseBtn').addEventListener('click', openClose);
+  $('sRecreateBtn').addEventListener('click', openClose);
+  $('closeBack').addEventListener('click', () => showScreen('settings'));
+  $('clSubmit').addEventListener('click', submitClose);
+
+  // Детали операции / история
+  $('txBack').addEventListener('click', () => showScreen('lk'));
+  $('historyBack').addEventListener('click', () => showScreen('lk'));
+  $('histSearch').addEventListener('input', async e => {
+    const q = e.target.value.trim();
+    if (q.length < 2){ renderTxList($('histList'), state.allTransactions.slice(0, 50)); return; }
+    const txs = await searchTransactions(q);
+    renderTxList($('histList'), txs);
+  });
+
+  // Успех
+  $('sucDone').addEventListener('click', async () => { await loadMe(); });
+
+  // Поиск в ЛК
+  $('globalSearch').addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim();
+    if (!q) return;
+    // Проверим, не запрос ли это про зарплатный счёт
+    if (/зарплат|создать|salary/i.test(q)){
+      if (state.accounts.some(a => a.type === 'salary')){
+        const sal = state.accounts.find(a => a.type === 'salary');
+        state.activeAccountId = sal.id;
+        renderLK();
+        openReq();
+      } else {
+        createSalary();
+      }
+      return;
+    }
+    openHistory('all', q);
+  });
+
+  // Документы
+  $('docBack').addEventListener('click', () => showScreen('lk'));
+  document.querySelectorAll('.legal-link').forEach(b => {
+    b.addEventListener('click', () => {
+      const key = b.getAttribute('data-doc');
+      const doc = DOCS[key];
+      if (!doc) return;
+      $('docTitle').textContent = doc.title;
+      $('docBody').innerHTML = doc.html;
+      showScreen('doc');
+    });
+  });
+
+  // Диалог
+  $('dlgCancel').addEventListener('click', closeDialog);
+  $('dlgOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDialog(); });
+  $('dlgOk').addEventListener('click', () => {
+    const cb = dlgCallback;
+    dlgCallback = null;
+    $('dlgOverlay').classList.remove('open');
+    if (cb) cb();
+  });
+
+  // Авто-вход
+  if (state.token){
+    loadMe().catch(() => {
+      state.token = null;
+      localStorage.removeItem(TOKEN_KEY);
+      showScreen('phone');
+    });
+  } else {
+    showScreen('phone');
+  }
+}
+
+/* ---------- История ---------- */
+function openHistory(type, search){
+  $('historyTitle').textContent = type === 'in' ? 'Доходы' : type === 'out' ? 'Траты' : 'История операций';
+  $('histSearch').value = search || '';
+  let list = state.allTransactions;
+  if (type === 'in') list = list.filter(t => t.to_phone === state.user.phone);
+  if (type === 'out') list = list.filter(t => t.from_phone === state.user.phone);
+  if (search){
+    const q = search.toLowerCase();
+    list = list.filter(t =>
+      (t.tx_number||'').toLowerCase().includes(q) ||
+      (t.comment||'').toLowerCase().includes(q) ||
+      (t.from_phone||'').includes(q) ||
+      (t.to_phone||'').includes(q)
+    );
+  }
+  renderTxList($('histList'), list);
+  showScreen('history');
+}
+
+/* ---------- Диалог ---------- */
+let dlgCallback = null;
+function openDialog(opts){
+  $('dlgTitle').textContent = opts.title || '';
+  $('dlgSub').textContent = opts.sub || '';
+  $('dlgSub').style.display = opts.sub ? '' : 'none';
+  $('dlgBody').innerHTML = opts.body || '';
+  $('dlgOk').textContent = opts.okText || 'OK';
+  $('dlgCancel').textContent = opts.cancelText || 'Отмена';
+  $('dlgCancel').style.display = opts.hideCancel ? 'none' : '';
+  dlgCallback = opts.onOk || null;
+  $('dlgOverlay').classList.add('open');
+}
+function closeDialog(){ $('dlgOverlay').classList.remove('open'); dlgCallback = null; }
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
